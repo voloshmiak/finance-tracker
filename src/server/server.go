@@ -19,15 +19,17 @@ type Registrar interface {
 }
 
 func New(addr string, registrars ...Registrar) *Server {
-	mux := http.NewServeMux()
+	api := http.NewServeMux()
 	for _, r := range registrars {
-		r.Register(mux)
+		r.Register(api)
 	}
-	mux.Handle("/swagger/", httpSwagger.WrapHandler)
+	root := http.NewServeMux()
+	root.Handle("/api/", http.StripPrefix("/api", api))
+	root.Handle("/swagger/", httpSwagger.WrapHandler)
 	return &Server{
 		httpServer: &http.Server{
 			Addr:         addr,
-			Handler:      mux,
+			Handler:      root,
 			ReadTimeout:  5 * time.Second,
 			WriteTimeout: 10 * time.Second,
 		},
