@@ -1,10 +1,16 @@
 package main
 
 import (
+	"finance-tracker/src/config"
+	"finance-tracker/src/controller"
+	"finance-tracker/src/server"
 	"log"
-	"net/http"
 )
 
+// @title           Finance Tracker API
+// @version         0.0.1
+// @description		This is the API documentation for the Finance Tracker application
+// @BasePath        /api
 func main() {
 	if err := run(); err != nil {
 		log.Fatal(err)
@@ -12,16 +18,13 @@ func main() {
 }
 
 func run() error {
-	router := http.NewServeMux()
-
-	router.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		_, err := w.Write([]byte("Hello, World!"))
-		if err != nil {
-			return
-		}
-	})
-
-	log.Println("Server is running on http://localhost:8080")
-	return http.ListenAndServe(":8080", router)
+	c, err := config.New()
+	if err != nil {
+		return err
+	}
+	s := server.New(":"+c.Server.Port,
+		controller.NewDocsController(),
+		controller.NewHealthController(),
+	)
+	return s.Start()
 }

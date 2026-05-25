@@ -1,0 +1,32 @@
+basePath: /api
+info:
+  contact: {}
+  description: This is the API documentation for the Finance Tracker application
+  title: Finance Tracker API
+  version: 0.0.1
+paths:
+  /docs:
+    get:
+      description: Serves the interactive API reference UI
+      produces:
+      - text/html
+      responses:
+        "200":
+          description: HTML page
+          schema:
+            type: string
+      summary: API Documentation
+      tags:
+      - System
+  /health:
+    get:
+      description: Returns 200 OK when the service is healthy
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+      summary: Health Check
+      tags:
+      - System
+swagger: "2.0"
