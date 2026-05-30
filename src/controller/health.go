@@ -15,10 +15,10 @@ func NewHealthController() *HealthController {
 // @Tags        System
 // @Success     200  {string}  string  "OK"
 // @Router      /health [get]
-func (h *HealthController) ServeHTTP(w http.ResponseWriter, _ *http.Request) {
-	w.WriteHeader(http.StatusOK)
+func (h *HealthController) ServeHTTP(rw http.ResponseWriter, _ *http.Request) {
+	rw.WriteHeader(http.StatusOK)
 }
 
 func (h *HealthController) Register(mux *http.ServeMux) {
-	mux.Handle("/api/health", h)
+	mux.Handle("GET /health", h)
 }

@@ -1,0 +1,7 @@
+CREATE TABLE expenses (
+    id UUID PRIMARY KEY,
+    amount BIGINT NOT NULL,
+    category VARCHAR(50) NOT NULL,
+    description TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);

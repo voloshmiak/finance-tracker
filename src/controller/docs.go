@@ -18,7 +18,7 @@ func NewDocsController() *DocsController {
 // @Produce     html
 // @Success     200  {string}  string  "HTML page"
 // @Router      /docs [get]
-func (h *DocsController) ServeHTTP(w http.ResponseWriter, _ *http.Request) {
+func (h *DocsController) ServeHTTP(rw http.ResponseWriter, _ *http.Request) {
 	html := `
     <!DOCTYPE html>
     <html>
@@ -33,17 +33,17 @@ func (h *DocsController) ServeHTTP(w http.ResponseWriter, _ *http.Request) {
       </body>
     </html>
     `
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	rw.Header().Set("Content-Type", "text/html; charset=utf-8")
 
-	_, err := w.Write([]byte(html))
+	_, err := rw.Write([]byte(html))
 	if err != nil {
-		http.Error(w, "Failed to load API reference", http.StatusInternalServerError)
+		http.Error(rw, "Failed to load API reference", http.StatusInternalServerError)
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
+	rw.WriteHeader(http.StatusOK)
 }
 
 func (h *DocsController) Register(mux *http.ServeMux) {
-	mux.Handle("/api/docs", h)
+	mux.Handle("GET /docs", h)
 }

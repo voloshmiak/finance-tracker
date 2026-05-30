@@ -3,6 +3,8 @@ package main
 import (
 	"finance-tracker/src/config"
 	"finance-tracker/src/controller"
+	"finance-tracker/src/database"
+	"finance-tracker/src/repository"
 	"finance-tracker/src/server"
 	"log"
 )
@@ -22,9 +24,24 @@ func run() error {
 	if err != nil {
 		return err
 	}
+
+	db, err := database.New(c.Database.DSN())
+	if err != nil {
+		return err
+	}
+	defer db.Conn().Close()
+
+	if err = db.Migrate(); err != nil {
+		return err
+	}
+
+	expenseRepository := repository.NewExpenseRepository(db.Conn())
+
 	s := server.New(":"+c.Server.Port,
 		controller.NewDocsController(),
 		controller.NewHealthController(),
+		controller.NewCreateExpenseController(expenseRepository),
 	)
+
 	return s.Start()
 }
