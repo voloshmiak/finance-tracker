@@ -11,10 +11,12 @@ import (
 type Config struct {
 	Server   Server
 	Database Database
+	Telegram Telegram
 }
 
 type Server struct {
-	Port string `env:"PORT" envDefault:"8080"`
+	Port      string `env:"PORT" envDefault:"8080"`
+	AuthToken string `env:"AUTH_TOKEN,required"`
 }
 
 type Database struct {
@@ -29,6 +31,12 @@ type Database struct {
 func (d Database) DSN() string {
 	return fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=%s",
 		d.User, d.Password, d.Host, d.Port, d.Name, d.SSLMode)
+}
+
+type Telegram struct {
+	Token  string `env:"TELEGRAM_TOKEN,required"`
+	ChatID int    `env:"TELEGRAM_CHAT_ID,required"`
+	Host   string `env:"TELEGRAM_HOST" envDefault:"https://api.telegram.org"`
 }
 
 func New() (*Config, error) {

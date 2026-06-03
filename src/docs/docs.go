@@ -15,6 +15,41 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/cron/reminder": {
+            "post": {
+                "description": "Triggers a Telegram reminder about card reports not yet uploaded this month. Intended to be called by a scheduled job.",
+                "tags": [
+                    "Cron"
+                ],
+                "summary": "Send Reminder",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer \u003cauth token\u003e",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Reminder sent"
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/docs": {
             "get": {
                 "description": "Serves the interactive API reference UI",
@@ -28,52 +63,6 @@ const docTemplate = `{
                 "responses": {
                     "200": {
                         "description": "HTML page",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
-            }
-        },
-        "/expenses": {
-            "post": {
-                "description": "Adds a new expense entry to the finance tracker",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Expense"
-                ],
-                "summary": "Create Expense",
-                "parameters": [
-                    {
-                        "description": "Expense payload",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/controller.CreateExpenseRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Created",
-                        "schema": {
-                            "$ref": "#/definitions/entity.Expense"
-                        }
-                    },
-                    "400": {
-                        "description": "Invalid request body",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "500": {
-                        "description": "Failed to create expense",
                         "schema": {
                             "type": "string"
                         }
@@ -95,42 +84,6 @@ const docTemplate = `{
                             "type": "string"
                         }
                     }
-                }
-            }
-        }
-    },
-    "definitions": {
-        "controller.CreateExpenseRequest": {
-            "type": "object",
-            "properties": {
-                "amount": {
-                    "type": "integer"
-                },
-                "category": {
-                    "type": "string"
-                },
-                "description": {
-                    "type": "string"
-                }
-            }
-        },
-        "entity.Expense": {
-            "type": "object",
-            "properties": {
-                "amount": {
-                    "type": "integer"
-                },
-                "category": {
-                    "type": "string"
-                },
-                "created_at": {
-                    "type": "string"
-                },
-                "description": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
                 }
             }
         }

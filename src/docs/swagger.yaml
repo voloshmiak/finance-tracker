@@ -1,33 +1,34 @@
 basePath: /api
-definitions:
-  controller.CreateExpenseRequest:
-    properties:
-      amount:
-        type: integer
-      category:
-        type: string
-      description:
-        type: string
-    type: object
-  entity.Expense:
-    properties:
-      amount:
-        type: integer
-      category:
-        type: string
-      created_at:
-        type: string
-      description:
-        type: string
-      id:
-        type: string
-    type: object
 info:
   contact: {}
   description: This is the API documentation for the Finance Tracker application
   title: Finance Tracker API
   version: 0.0.1
 paths:
+  /cron/reminder:
+    post:
+      description: Triggers a Telegram reminder about card reports not yet uploaded
+        this month. Intended to be called by a scheduled job.
+      parameters:
+      - description: Bearer <auth token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      responses:
+        "200":
+          description: Reminder sent
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Send Reminder
+      tags:
+      - Cron
   /docs:
     get:
       description: Serves the interactive API reference UI
@@ -41,36 +42,6 @@ paths:
       summary: API Documentation
       tags:
       - System
-  /expenses:
-    post:
-      consumes:
-      - application/json
-      description: Adds a new expense entry to the finance tracker
-      parameters:
-      - description: Expense payload
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/controller.CreateExpenseRequest'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            $ref: '#/definitions/entity.Expense'
-        "400":
-          description: Invalid request body
-          schema:
-            type: string
-        "500":
-          description: Failed to create expense
-          schema:
-            type: string
-      summary: Create Expense
-      tags:
-      - Expense
   /health:
     get:
       description: Returns 200 OK when the service is healthy

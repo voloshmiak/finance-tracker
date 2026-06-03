@@ -4,8 +4,9 @@ import (
 	"finance-tracker/src/config"
 	"finance-tracker/src/controller"
 	"finance-tracker/src/database"
-	"finance-tracker/src/repository"
 	"finance-tracker/src/server"
+	"finance-tracker/src/telegram"
+	"finance-tracker/src/usecase"
 	"log"
 )
 
@@ -35,12 +36,13 @@ func run() error {
 		return err
 	}
 
-	expenseRepository := repository.NewExpenseRepository(db.Conn())
+	client := telegram.NewClient(c.Telegram.Token, c.Telegram.Host, c.Telegram.ChatID)
+	reminderUseCase := usecase.NewReminder(client, c.Server.AuthToken)
 
 	s := server.New(":"+c.Server.Port,
 		controller.NewDocsController(),
 		controller.NewHealthController(),
-		controller.NewCreateExpenseController(expenseRepository),
+		controller.NewReminderController(reminderUseCase),
 	)
 
 	return s.Start()
