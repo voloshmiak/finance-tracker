@@ -16,7 +16,7 @@ type Config struct {
 
 type Server struct {
 	Port      string `env:"PORT" envDefault:"8080"`
-	AuthToken string `env:"AUTH_TOKEN,required"`
+	AuthToken string `env:"SERVER_AUTH_TOKEN,required"`
 }
 
 type Database struct {
