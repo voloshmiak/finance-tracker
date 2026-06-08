@@ -10,6 +10,7 @@ env:
   REGION: europe-central2
   SERVICE_NAME: finance-tracker
   REPO_NAME: finance-tracker
+  TELEGRAM_HOST: https://api.telegram.org
 
 jobs:
   deploy:
@@ -48,3 +49,6 @@ jobs:
             DB_PASSWORD=${{ secrets.DB_PASSWORD }}
             DB_SSLMODE=${{ secrets.DB_SSLMODE }}
             SERVER_AUTH_TOKEN=${{ secrets.SERVER_AUTH_TOKEN }}
+            TELEGRAM_HOST=${{ env.TELEGRAM_HOST }}
+            TELEGRAM_TOKEN=${{ secrets.TELEGRAM_TOKEN }}
+            TELEGRAM_CHAT_ID=${{ secrets.TELEGRAM_CHAT_ID }}
