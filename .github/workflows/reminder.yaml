@@ -9,5 +9,6 @@ jobs:
   send-reminder:
     runs-on: ubuntu-slim
     steps:
-      - run: curl -X POST -H 'Authorization' 'Bearer ${{secrets.SERVER_AUTH_TOKEN}}'
-          ${{secrets.SERVER_HOST}}/api/cron/reminder
+      - run: >
+          curl -X POST -H 'Authorization: Bearer ${{secrets.SERVER_AUTH_TOKEN}}'
+          '${{secrets.SERVER_HOST}}/api/cron/reminder'
