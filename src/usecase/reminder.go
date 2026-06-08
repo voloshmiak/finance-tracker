@@ -25,7 +25,7 @@ func NewReminder(notifier Notifier, token string) *Reminder {
 	}
 }
 
-func (u *Reminder) Send(ctx context.Context, auth string) error {
+func (u *Reminder) Execute(ctx context.Context, auth string) error {
 	const prefix = "Bearer "
 	token := strings.TrimPrefix(auth, prefix)
 	if token == "" || subtle.ConstantTimeCompare([]byte(token), []byte(u.token)) != 1 {

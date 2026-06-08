@@ -26,7 +26,7 @@ func NewReminderController(useCase *usecase.Reminder) *ReminderController {
 // @Failure     500   {object}  string  "Internal Server Error"
 // @Router      /cron/reminder [post]
 func (c *ReminderController) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
-	if err := c.useCase.Send(r.Context(), r.Header.Get("Authorization")); err != nil {
+	if err := c.useCase.Execute(r.Context(), r.Header.Get("Authorization")); err != nil {
 		if errors.Is(err, usecase.ErrUnauthorized) {
 			http.Error(rw, err.Error(), http.StatusUnauthorized)
 			return
