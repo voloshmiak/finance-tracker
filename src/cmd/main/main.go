@@ -11,7 +11,7 @@ import (
 )
 
 // @title           Finance Tracker API
-// @version         0.0.1
+// @version         0.0.2
 // @description		This is the API documentation for the Finance Tracker application
 // @BasePath        /api
 func main() {
@@ -37,12 +37,13 @@ func run() error {
 	}
 
 	client := telegram.NewClient(c.Telegram.Token, c.Telegram.Host, c.Telegram.ChatID)
-	reminderUseCase := usecase.NewReminder(client, c.Server.AuthToken)
 
 	s := server.New(":"+c.Server.Port,
 		controller.NewDocsController(),
 		controller.NewHealthController(),
-		controller.NewReminderController(reminderUseCase),
+		controller.NewReminderController(
+			usecase.NewReminder(client, c.Server.AuthToken),
+		),
 	)
 
 	return s.Start()
