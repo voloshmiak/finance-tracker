@@ -53,3 +53,8 @@ jobs:
             TELEGRAM_TOKEN=${{ secrets.TELEGRAM_TOKEN }}
             TELEGRAM_CHAT_ID=${{ secrets.TELEGRAM_CHAT_ID }}
             TELEGRAM_WEBHOOK_SECRET=${{ secrets.TELEGRAM_WEBHOOK_SECRET }}
+            DB_READONLY_USER=${{ secrets.DB_READONLY_USER }}
+            DB_READONLY_PASSWORD=${{ secrets.DB_READONLY_PASSWORD}}
+            ASSISTANT_USERNAME=${{ secrets.ASSISTANT_USERNAME}}
+            ASSISTANT_PASSWORD=${{ secrets.ASSISTANT_PASSWORD}}
+            GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY}}
