@@ -1,9 +1,43 @@
 basePath: /api
+definitions:
+  telegram.Chat:
+    properties:
+      id:
+        type: integer
+    type: object
+  telegram.Document:
+    properties:
+      file_id:
+        type: string
+      file_name:
+        type: string
+      file_size:
+        type: integer
+    type: object
+  telegram.Message:
+    properties:
+      caption:
+        description: text sent alongside a file (e.g. card last 4 digits)
+        type: string
+      chat:
+        $ref: '#/definitions/telegram.Chat'
+      document:
+        $ref: '#/definitions/telegram.Document'
+      message_id:
+        type: integer
+    type: object
+  telegram.Update:
+    properties:
+      message:
+        $ref: '#/definitions/telegram.Message'
+      update_id:
+        type: integer
+    type: object
 info:
   contact: {}
   description: This is the API documentation for the Finance Tracker application
   title: Finance Tracker API
-  version: 0.0.2
+  version: 0.0.3
 paths:
   /cron/reminder:
     post:
@@ -53,4 +87,38 @@ paths:
       summary: Health Check
       tags:
       - System
+  /webhook:
+    post:
+      consumes:
+      - application/json
+      description: Receives Telegram bot updates. When a message carries a bank statement
+        document (monobank CSV, Credit Agricole XLSX, or a-bank PDF), the file is
+        downloaded, parsed, deduplicated and stored. Authenticated via the Telegram
+        secret token header.
+      parameters:
+      - description: Telegram webhook secret token
+        in: header
+        name: X-Telegram-Bot-Api-Secret-Token
+        required: true
+        type: string
+      - description: Telegram update payload
+        in: body
+        name: update
+        required: true
+        schema:
+          $ref: '#/definitions/telegram.Update'
+      responses:
+        "200":
+          description: Update processed
+        "401":
+          description: Invalid secret token
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Telegram webhook
+      tags:
+      - Telegram
 swagger: "2.0"

@@ -86,13 +86,113 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/webhook": {
+            "post": {
+                "description": "Receives Telegram bot updates. When a message carries a bank statement document (monobank CSV, Credit Agricole XLSX, or a-bank PDF), the file is downloaded, parsed, deduplicated and stored. Authenticated via the Telegram secret token header.",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Telegram"
+                ],
+                "summary": "Telegram webhook",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Telegram webhook secret token",
+                        "name": "X-Telegram-Bot-Api-Secret-Token",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "Telegram update payload",
+                        "name": "update",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/telegram.Update"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Update processed"
+                    },
+                    "401": {
+                        "description": "Invalid secret token",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "telegram.Chat": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "telegram.Document": {
+            "type": "object",
+            "properties": {
+                "file_id": {
+                    "type": "string"
+                },
+                "file_name": {
+                    "type": "string"
+                },
+                "file_size": {
+                    "type": "integer"
+                }
+            }
+        },
+        "telegram.Message": {
+            "type": "object",
+            "properties": {
+                "caption": {
+                    "description": "text sent alongside a file (e.g. card last 4 digits)",
+                    "type": "string"
+                },
+                "chat": {
+                    "$ref": "#/definitions/telegram.Chat"
+                },
+                "document": {
+                    "$ref": "#/definitions/telegram.Document"
+                },
+                "message_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "telegram.Update": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "$ref": "#/definitions/telegram.Message"
+                },
+                "update_id": {
+                    "type": "integer"
+                }
+            }
         }
     }
 }`
 
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
-	Version:          "0.0.2",
+	Version:          "0.0.3",
 	Host:             "",
 	BasePath:         "/api",
 	Schemes:          []string{},
