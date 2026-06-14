@@ -1,5 +1,15 @@
 basePath: /api
 definitions:
+  controller.askRequest:
+    properties:
+      question:
+        type: string
+    type: object
+  controller.askResponse:
+    properties:
+      answer:
+        type: string
+    type: object
   telegram.Chat:
     properties:
       id:
@@ -37,8 +47,61 @@ info:
   contact: {}
   description: This is the API documentation for the Finance Tracker application
   title: Finance Tracker API
-  version: 0.0.4
+  version: 0.0.5
 paths:
+  /assistant:
+    get:
+      description: Serves the HTML chat interface for the AI finance assistant. Protected
+        by HTTP Basic Auth.
+      produces:
+      - text/html
+      responses:
+        "200":
+          description: HTML page
+          schema:
+            type: string
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
+      summary: Assistant chat UI
+      tags:
+      - Assistant
+  /assistant/ask:
+    post:
+      consumes:
+      - application/json
+      description: Sends a natural-language question about your finances and returns
+        the assistant's answer. Protected by HTTP Basic Auth.
+      parameters:
+      - description: Question payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/controller.askRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/controller.askResponse'
+        "400":
+          description: Invalid request
+          schema:
+            type: string
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Ask the assistant
+      tags:
+      - Assistant
   /cron/reminder:
     post:
       description: Triggers a Telegram reminder about card reports not yet uploaded

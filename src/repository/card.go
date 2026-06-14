@@ -24,7 +24,9 @@ func (r *CardRepository) MissingMonths(ctx context.Context, startFrom time.Time)
 		WITH months AS (
 			SELECT generate_series(
 				date_trunc('month', $1::timestamptz),
-				date_trunc('month', now()),
+				-- up to the previous month: the current month isn't over yet,
+				-- so its statement can't exist.
+				date_trunc('month', now()) - interval '1 month',
 				interval '1 month'
 			) AS month
 		)

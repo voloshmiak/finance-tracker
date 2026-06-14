@@ -1,6 +1,8 @@
 package main
 
 import (
+	"context"
+	"finance-tracker/src/assistant"
 	"finance-tracker/src/config"
 	"finance-tracker/src/controller"
 	"finance-tracker/src/database"
@@ -13,7 +15,7 @@ import (
 )
 
 // @title           Finance Tracker API
-// @version         0.0.4
+// @version         0.0.5
 // @description		This is the API documentation for the Finance Tracker application
 // @BasePath        /api
 func main() {
@@ -44,6 +46,21 @@ func run() error {
 	cardRepository := repository.NewCardRepository(db.Conn())
 	parserRegistry := parser.NewRegistry()
 
+	// The assistant's SQL tool runs under a dedicated read-only connection.
+	readDB, err := database.New(c.Database.ReadOnlyDSN())
+	if err != nil {
+		return err
+	}
+	defer readDB.Conn().Close()
+
+	ai, err := assistant.New(context.Background(),
+		c.Assistant.GeminiAPIKey, c.Assistant.Model,
+		assistant.NewSQLTool(readDB.Conn()),
+	)
+	if err != nil {
+		return err
+	}
+
 	s := server.New(":"+c.Server.Port,
 		controller.NewDocsController(),
 		controller.NewHealthController(),
@@ -53,6 +70,10 @@ func run() error {
 		controller.NewWebhookController(
 			usecase.NewWebhook(parserRegistry, transactionRepository, client, client, c.Telegram.ChatID),
 			c.Telegram.WebhookSecret,
+		),
+		controller.NewAssistantController(
+			usecase.NewAssistant(ai),
+			c.Assistant.Username, c.Assistant.Password,
 		),
 	)
 

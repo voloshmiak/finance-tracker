@@ -15,6 +15,84 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/assistant": {
+            "get": {
+                "description": "Serves the HTML chat interface for the AI finance assistant. Protected by HTTP Basic Auth.",
+                "produces": [
+                    "text/html"
+                ],
+                "tags": [
+                    "Assistant"
+                ],
+                "summary": "Assistant chat UI",
+                "responses": {
+                    "200": {
+                        "description": "HTML page",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/assistant/ask": {
+            "post": {
+                "description": "Sends a natural-language question about your finances and returns the assistant's answer. Protected by HTTP Basic Auth.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Assistant"
+                ],
+                "summary": "Ask the assistant",
+                "parameters": [
+                    {
+                        "description": "Question payload",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/controller.askRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/controller.askResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/cron/reminder": {
             "post": {
                 "description": "Triggers a Telegram reminder about card reports not yet uploaded this month. Intended to be called by a scheduled job.",
@@ -136,6 +214,22 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "controller.askRequest": {
+            "type": "object",
+            "properties": {
+                "question": {
+                    "type": "string"
+                }
+            }
+        },
+        "controller.askResponse": {
+            "type": "object",
+            "properties": {
+                "answer": {
+                    "type": "string"
+                }
+            }
+        },
         "telegram.Chat": {
             "type": "object",
             "properties": {
@@ -192,7 +286,7 @@ const docTemplate = `{
 
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
-	Version:          "0.0.4",
+	Version:          "0.0.5",
 	Host:             "",
 	BasePath:         "/api",
 	Schemes:          []string{},

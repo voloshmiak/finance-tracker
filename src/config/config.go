@@ -9,9 +9,10 @@ import (
 )
 
 type Config struct {
-	Server   Server
-	Database Database
-	Telegram Telegram
+	Server    Server
+	Database  Database
+	Telegram  Telegram
+	Assistant Assistant
 }
 
 type Server struct {
@@ -26,11 +27,29 @@ type Database struct {
 	User     string `env:"DB_USER,required"`
 	Password string `env:"DB_PASSWORD,required"`
 	SSLMode  string `env:"DB_SSLMODE" envDefault:"disable"`
+
+	// ReadOnlyUser/Password are a restricted role (GRANT SELECT only) used by
+	// the AI assistant's SQL tool. Falls back to the main user if unset.
+	ReadOnlyUser     string `env:"DB_READONLY_USER"`
+	ReadOnlyPassword string `env:"DB_READONLY_PASSWORD"`
 }
 
 func (d Database) DSN() string {
 	return fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=%s",
 		d.User, d.Password, d.Host, d.Port, d.Name, d.SSLMode)
+}
+
+// ReadOnlyDSN builds a connection string for the restricted read-only role.
+func (d Database) ReadOnlyDSN() string {
+	return fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=%s",
+		d.ReadOnlyUser, d.ReadOnlyPassword, d.Host, d.Port, d.Name, d.SSLMode)
+}
+
+type Assistant struct {
+	GeminiAPIKey string `env:"GEMINI_API_KEY,required"`
+	Model        string `env:"ASSISTANT_MODEL" envDefault:"gemini-2.5-flash"`
+	Username     string `env:"ASSISTANT_USERNAME,required"`
+	Password     string `env:"ASSISTANT_PASSWORD,required"`
 }
 
 type Telegram struct {

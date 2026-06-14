@@ -28,10 +28,12 @@ func New(addr string, registrars ...Registrar) *Server {
 	root.Handle("/swagger/", httpSwagger.WrapHandler)
 	return &Server{
 		httpServer: &http.Server{
-			Addr:         addr,
-			Handler:      root,
-			ReadTimeout:  5 * time.Second,
-			WriteTimeout: 10 * time.Second,
+			Addr:        addr,
+			Handler:     root,
+			ReadTimeout: 5 * time.Second,
+			// WriteTimeout is generous because the assistant endpoint runs an
+			// LLM tool-calling loop that can take well over 10s.
+			WriteTimeout: 120 * time.Second,
 		},
 	}
 }
