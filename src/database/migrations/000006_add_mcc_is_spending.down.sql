@@ -1,0 +1,1 @@
+ALTER TABLE mcc_categories DROP COLUMN IF EXISTS is_spending;

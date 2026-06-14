@@ -68,7 +68,7 @@ info:
   contact: {}
   description: This is theAPI documentation for the Finance Tracker application
   title: Finance Tracker API
-  version: 0.0.8
+  version: 0.1.0
 paths:
   /assistant:
     get:
