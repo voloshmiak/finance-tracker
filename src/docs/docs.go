@@ -349,12 +349,12 @@ const docTemplate = `{
 
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
-	Version:          "0.0.7",
+	Version:          "0.0.8",
 	Host:             "",
 	BasePath:         "/api",
 	Schemes:          []string{},
 	Title:            "Finance Tracker API",
-	Description:      "This is the API documentation for the Finance Tracker application",
+	Description:      "This is theAPI documentation for the Finance Tracker application",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 	LeftDelim:        "{{",
