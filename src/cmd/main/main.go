@@ -13,7 +13,7 @@ import (
 )
 
 // @title           Finance Tracker API
-// @version         0.0.3
+// @version         0.0.4
 // @description		This is the API documentation for the Finance Tracker application
 // @BasePath        /api
 func main() {

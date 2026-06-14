@@ -28,6 +28,9 @@ const (
 // cardMaskRe matches a masked card number like "**** **** **** 5617".
 var cardMaskRe = regexp.MustCompile(`\*+[\d* ]*\d{4}`)
 
+// caDateRe matches a CA operation date "DD.MM.YYYY", marking a data row.
+var caDateRe = regexp.MustCompile(`^\d{2}\.\d{2}\.\d{4}$`)
+
 // CreditAgricole parses Credit Agricole's XLSX statement export.
 type CreditAgricole struct{}
 
@@ -69,23 +72,23 @@ func (p *CreditAgricole) Parse(r io.Reader) ([]*entity.Transaction, error) {
 		if !inOperations {
 			continue
 		}
-		// The operations section ends at the blockings section or summary rows.
+		// The operations section ends at the blockings section.
 		if strings.HasPrefix(a, "Блокування") {
 			break
 		}
-		desc := strings.TrimSpace(cell(row, caColDescription))
-		if strings.HasPrefix(desc, "Всього") {
-			break
-		}
 
-		// A data row starts with a numeric "№ Карт." (e.g. "1.0"); skip the header.
-		if a == "" || a == "№ Карт." || !startsWithDigit(a) {
+		// A data row is identified by a valid date in column B. This skips the
+		// header ("Дата здійснення операції") and summary rows ("Всього ...")
+		// regardless of whether column A ("№ Карт.") is populated — some
+		// operations (e.g. salary credits) leave it empty.
+		rawDate := strings.TrimSpace(cell(row, caColOperatedAt))
+		if !caDateRe.MatchString(rawDate) {
 			continue
 		}
 
 		tx, err := p.parseRow(row, cardMask)
 		if err != nil {
-			return nil, fmt.Errorf("row %q: %w", a, err)
+			return nil, fmt.Errorf("row %q: %w", rawDate, err)
 		}
 		txs = append(txs, tx)
 	}
@@ -131,10 +134,6 @@ func cell(row []string, i int) string {
 		return row[i]
 	}
 	return ""
-}
-
-func startsWithDigit(s string) bool {
-	return s != "" && s[0] >= '0' && s[0] <= '9'
 }
 
 // extractCardMask finds the masked card number from the statement header.
