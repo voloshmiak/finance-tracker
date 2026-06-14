@@ -34,8 +34,8 @@ func TestCreditAgricoleParse(t *testing.T) {
 	if tx.Currency != "UAH" {
 		t.Errorf("currency = %q", tx.Currency)
 	}
-	if tx.MCC != nil {
-		t.Errorf("MCC must be nil for CA, got %v", *tx.MCC)
+	if tx.MCC == nil || *tx.MCC != 5655 {
+		t.Errorf("MCC = %v, want 5655 (extracted from description)", tx.MCC)
 	}
 	if tx.OperatedAt.Year() != 2026 || tx.OperatedAt.Day() != 30 {
 		t.Errorf("operatedAt = %v", tx.OperatedAt)

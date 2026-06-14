@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"google.golang.org/genai"
 )
@@ -73,7 +74,8 @@ func (a *Assistant) DefaultModel() string {
 	return a.model
 }
 
-const systemPrompt = `Ти — фінансовий асистент у застосунку обліку особистих витрат.
+func systemPrompt() string {
+	return `Ти — фінансовий асистент у застосунку обліку особистих витрат.
 Користувач ставить питання українською про свої витрати з банківських карток.
 
 Дані лежать у таблиці PostgreSQL "transactions":
@@ -106,7 +108,14 @@ const systemPrompt = `Ти — фінансовий асистент у заст
 - Українською, дружньо і змістовно. Не обмежуйся одним рядком — давай контекст, порівняння,
   тенденції, і де доречно — список конкретних дій.
 - Підкріплюй висновки реальними цифрами з бази.
-- Якщо даних справді немає — скажи про це чесно й запропонуй, що можна завантажити.`
+- Якщо даних справді немає — скажи про це чесно й запропонуй, що можна завантажити.
+
+Сьогоднішня дата: ` + time.Now().Format("2006-01-02") + `
+
+Мій дохід складає 1300$ на місяць.
+
+`
+}
 
 // Assistant answers natural-language questions about the user's finances by
 // letting Gemini call a read-only SQL tool.
@@ -154,7 +163,7 @@ func (a *Assistant) Ask(ctx context.Context, question, model string) (string, er
 	}
 
 	config := &genai.GenerateContentConfig{
-		SystemInstruction: genai.NewContentFromText(systemPrompt, genai.RoleUser),
+		SystemInstruction: genai.NewContentFromText(systemPrompt(), genai.RoleUser),
 		Tools:             []*genai.Tool{sqlToolDeclaration()},
 	}
 

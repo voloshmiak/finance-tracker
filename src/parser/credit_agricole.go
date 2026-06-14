@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -30,6 +31,10 @@ var cardMaskRe = regexp.MustCompile(`\*+[\d* ]*\d{4}`)
 
 // caDateRe matches a CA operation date "DD.MM.YYYY", marking a data row.
 var caDateRe = regexp.MustCompile(`^\d{2}\.\d{2}\.\d{4}$`)
+
+// caMCCRe extracts the MCC embedded in CA descriptions as a 4-digit code in
+// square brackets, e.g. "...Оплата товарів/послуг 756860 [5655], UA.KYIV...".
+var caMCCRe = regexp.MustCompile(`\[(\d{4})\]`)
 
 // CreditAgricole parses Credit Agricole's XLSX statement export.
 type CreditAgricole struct{}
@@ -108,15 +113,23 @@ func (p *CreditAgricole) parseRow(row []string, cardMask *string) (*entity.Trans
 		return nil, fmt.Errorf("parse amount: %w", err)
 	}
 
+	description := strings.TrimSpace(cell(row, caColDescription))
+
 	tx := &entity.Transaction{
 		ID:          uuid.New(),
 		Bank:        entity.BankCreditAgricole,
 		OperatedAt:  operatedAt,
-		Description: strings.TrimSpace(cell(row, caColDescription)),
+		Description: description,
 		Amount:      amount,
 		Currency:    strings.TrimSpace(cell(row, caColCurrency)),
 		CardMask:    cardMask,
-		// MCC stays nil: CA provides "Код операції", not an MCC.
+	}
+
+	// CA embeds the MCC inside the description as "[5655]" rather than a column.
+	if m := caMCCRe.FindStringSubmatch(description); m != nil {
+		if mcc, err := strconv.Atoi(m[1]); err == nil {
+			tx.MCC = ptr(mcc)
+		}
 	}
 
 	if v, ok, err := parseMoneyKop(cell(row, caColOrigAmount)); err != nil {
