@@ -28,6 +28,10 @@ const assistantHTML = `<!DOCTYPE html>
     header .title { flex:1; }
     select { padding:7px 10px; border-radius:8px; border:1px solid #2a2f3a; background:var(--panel); color:var(--text); font-size:13px; outline:none; cursor:pointer; }
     select:focus { border-color:var(--me); }
+    #chips { display:flex; flex-wrap:wrap; gap:8px; padding:0 20px 4px; max-width:820px; width:100%; margin:0 auto; }
+    .chip { padding:8px 14px; border-radius:18px; border:1px solid #2a2f3a; background:var(--panel); color:var(--text); font-size:13px; cursor:pointer; transition:border-color .15s,background .15s; }
+    .chip:hover { border-color:var(--me); background:#1f2330; }
+    .chip:disabled { opacity:.5; cursor:default; }
   </style>
 </head>
 <body>
@@ -36,6 +40,7 @@ const assistantHTML = `<!DOCTYPE html>
     <select id="model" title="Модель Gemini"></select>
   </header>
   <div id="chat"></div>
+  <div id="chips"></div>
   <form id="form">
     <input id="q" placeholder="Скільки я витратив на їжу минулого місяця?" autocomplete="off" autofocus />
     <button id="send" type="submit">Надіслати</button>
@@ -72,13 +77,17 @@ const assistantHTML = `<!DOCTYPE html>
       return d;
     }
 
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const q = input.value.trim();
+    function setBusy(busy) {
+      send.disabled = busy;
+      document.querySelectorAll('.chip').forEach((c) => { c.disabled = busy; });
+    }
+
+    async function sendQuestion(q) {
+      q = q.trim();
       if (!q) return;
       bubble(q, 'me');
       input.value = '';
-      send.disabled = true;
+      setBusy(true);
       const thinking = bubble('думаю…', 'bot typing');
       try {
         const res = await fetch('/api/assistant/ask', {
@@ -93,10 +102,37 @@ const assistantHTML = `<!DOCTYPE html>
         thinking.remove();
         bubble('Помилка зʼєднання: ' + err.message, 'bot');
       } finally {
-        send.disabled = false;
+        setBusy(false);
         input.focus();
       }
+    }
+
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      sendQuestion(input.value);
     });
+
+    // Preset prompt chips for common questions.
+    const presets = [
+      { label: '💡 Поради для економії', prompt: 'Проаналізуй мої витрати й дай конкретні поради, як зекономити. Покажи, на чому я переплачую.' },
+      { label: '🔍 Критика моїх витрат', prompt: 'Критично оціни мої фінансові звички за останні місяці. Де я поводжуся нераціонально? Будь відвертим.' },
+      { label: '📊 Огляд за місяць', prompt: 'Зроби підсумок моїх витрат за минулий місяць: загальна сума, топ категорій, порівняння з попереднім місяцем.' },
+      { label: '🍔 Витрати на їжу', prompt: 'Скільки я витрачаю на їжу та кафе щомісяця? Це багато? Як можна зменшити?' },
+      { label: '📈 Динаміка витрат', prompt: 'Покажи, як змінювалися мої загальні витрати по місяцях. Чи є тривожна тенденція?' },
+      { label: '💳 Розподіл по картках', prompt: 'З яких карток я витрачаю найбільше і на що саме? Чи раціонально я ними користуюся?' },
+      { label: '🔁 Підписки і регулярні платежі', prompt: 'Знайди регулярні або повторювані платежі (підписки, сервіси). Чи всі вони мені потрібні?' },
+      { label: '🎯 Скласти бюджет', prompt: 'На основі моїх реальних витрат запропонуй розумний місячний бюджет по категоріях.' },
+    ];
+
+    const chipsBox = document.getElementById('chips');
+    for (const p of presets) {
+      const b = document.createElement('button');
+      b.className = 'chip';
+      b.type = 'button';
+      b.textContent = p.label;
+      b.addEventListener('click', () => sendQuestion(p.prompt));
+      chipsBox.appendChild(b);
+    }
   </script>
 </body>
 </html>`

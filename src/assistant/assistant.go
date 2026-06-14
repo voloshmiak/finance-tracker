@@ -28,6 +28,9 @@ func (a *Assistant) ListModels(ctx context.Context) ([]Model, error) {
 			continue
 		}
 		id := strings.TrimPrefix(m.Name, "models/")
+		if !suitableForTools(id) {
+			continue
+		}
 		label := m.DisplayName
 		if label == "" {
 			label = id
@@ -44,6 +47,25 @@ func supportsGenerate(m *genai.Model) bool {
 		}
 	}
 	return false
+}
+
+// suitableForTools keeps only stable Gemini chat models that support function
+// calling. Embedding/TTS/image/vision-only and preview/experimental variants
+// either lack tool support or use an incompatible request shape, which is what
+// caused "gemini call" errors on non-flash models.
+func suitableForTools(id string) bool {
+	if !strings.HasPrefix(id, "gemini-") {
+		return false
+	}
+	for _, bad := range []string{
+		"embedding", "tts", "image", "vision", "live",
+		"preview", "exp", "thinking", "learnlm",
+	} {
+		if strings.Contains(id, bad) {
+			return false
+		}
+	}
+	return true
 }
 
 // DefaultModel returns the model used when a request does not specify one.
@@ -68,9 +90,23 @@ const systemPrompt = `Ти — фінансовий асистент у заст
 
 Таблиця "cards": last4, bank, label, currency, is_active.
 
-Щоб відповісти, ВИКОРИСТОВУЙ інструмент run_sql — пиши лише SELECT-запити.
-Суми діли на 100, щоб показати гривні. Витрати показуй як додатні числа за модулем.
-Відповідай українською, з конкретними числами. Якщо даних нема — так і скажи.`
+Твоя робота:
+- Відповідати на питання про витрати, аналізувати їх і ДАВАТИ ПОРАДИ щодо економії та бюджету.
+- Коли користувач просить поради — НЕ відмовляйся. Спершу самостійно дослідь дані через run_sql
+  (наприклад: найбільші категорії за MCC, динаміка по місяцях, найбільші окремі витрати,
+  співвідношення витрат до надходжень), а потім дай конкретні, персоналізовані рекомендації
+  на основі побачених цифр. Не питай дозволу заглянути в дані — просто роби це.
+
+Як працювати з даними:
+- ВИКОРИСТОВУЙ інструмент run_sql скільки потрібно — пиши лише SELECT-запити.
+- Суми зберігаються в копійках: діли на 100, щоб показати гривні. Витрати — додатними числами за модулем.
+- Для категорій орієнтуйся на MCC та текст у description.
+
+Стиль відповіді:
+- Українською, дружньо і змістовно. Не обмежуйся одним рядком — давай контекст, порівняння,
+  тенденції, і де доречно — список конкретних дій.
+- Підкріплюй висновки реальними цифрами з бази.
+- Якщо даних справді немає — скажи про це чесно й запропонуй, що можна завантажити.`
 
 // Assistant answers natural-language questions about the user's finances by
 // letting Gemini call a read-only SQL tool.

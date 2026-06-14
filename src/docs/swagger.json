@@ -4,7 +4,7 @@
         "description": "This is the API documentation for the Finance Tracker application",
         "title": "Finance Tracker API",
         "contact": {},
-        "version": "0.0.5"
+        "version": "0.0.7"
     },
     "basePath": "/api",
     "paths": {
@@ -69,6 +69,38 @@
                         "description": "Invalid request",
                         "schema": {
                             "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/assistant/models": {
+            "get": {
+                "description": "Returns the Gemini models that support generation, plus the default. Protected by HTTP Basic Auth.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Assistant"
+                ],
+                "summary": "List available models",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/controller.modelsResponse"
                         }
                     },
                     "401": {
@@ -207,6 +239,19 @@
         }
     },
     "definitions": {
+        "assistant.Model": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "description": "e.g. \"gemini-2.5-flash\"",
+                    "type": "string"
+                },
+                "label": {
+                    "description": "human-friendly display name",
+                    "type": "string"
+                }
+            }
+        },
         "controller.askRequest": {
             "type": "object",
             "properties": {
@@ -224,6 +269,20 @@
             "properties": {
                 "answer": {
                     "type": "string"
+                }
+            }
+        },
+        "controller.modelsResponse": {
+            "type": "object",
+            "properties": {
+                "default": {
+                    "type": "string"
+                },
+                "models": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/assistant.Model"
+                    }
                 }
             }
         },

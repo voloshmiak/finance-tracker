@@ -60,18 +60,25 @@ type askResponse struct {
 func (c *AssistantController) ask(rw http.ResponseWriter, r *http.Request) {
 	var req askRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.Question == "" {
-		http.Error(rw, "invalid request", http.StatusBadRequest)
+		jsonError(rw, "invalid request", http.StatusBadRequest)
 		return
 	}
 
 	answer, err := c.useCase.Ask(r.Context(), req.Question, req.Model)
 	if err != nil {
-		http.Error(rw, err.Error(), http.StatusInternalServerError)
+		jsonError(rw, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	rw.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(rw).Encode(askResponse{Answer: answer})
+}
+
+// jsonError writes an error as JSON so the frontend can always parse the body.
+func jsonError(rw http.ResponseWriter, msg string, code int) {
+	rw.Header().Set("Content-Type", "application/json")
+	rw.WriteHeader(code)
+	_ = json.NewEncoder(rw).Encode(map[string]string{"error": msg})
 }
 
 type modelsResponse struct {
@@ -91,7 +98,7 @@ type modelsResponse struct {
 func (c *AssistantController) models(rw http.ResponseWriter, r *http.Request) {
 	models, err := c.useCase.Models(r.Context())
 	if err != nil {
-		http.Error(rw, err.Error(), http.StatusInternalServerError)
+		jsonError(rw, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	rw.Header().Set("Content-Type", "application/json")

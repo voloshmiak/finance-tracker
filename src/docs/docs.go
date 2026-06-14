@@ -93,6 +93,38 @@ const docTemplate = `{
                 }
             }
         },
+        "/assistant/models": {
+            "get": {
+                "description": "Returns the Gemini models that support generation, plus the default. Protected by HTTP Basic Auth.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Assistant"
+                ],
+                "summary": "List available models",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/controller.modelsResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/cron/reminder": {
             "post": {
                 "description": "Triggers a Telegram reminder about card reports not yet uploaded this month. Intended to be called by a scheduled job.",
@@ -214,6 +246,19 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "assistant.Model": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "description": "e.g. \"gemini-2.5-flash\"",
+                    "type": "string"
+                },
+                "label": {
+                    "description": "human-friendly display name",
+                    "type": "string"
+                }
+            }
+        },
         "controller.askRequest": {
             "type": "object",
             "properties": {
@@ -231,6 +276,20 @@ const docTemplate = `{
             "properties": {
                 "answer": {
                     "type": "string"
+                }
+            }
+        },
+        "controller.modelsResponse": {
+            "type": "object",
+            "properties": {
+                "default": {
+                    "type": "string"
+                },
+                "models": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/assistant.Model"
+                    }
                 }
             }
         },
@@ -290,7 +349,7 @@ const docTemplate = `{
 
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
-	Version:          "0.0.5",
+	Version:          "0.0.7",
 	Host:             "",
 	BasePath:         "/api",
 	Schemes:          []string{},
