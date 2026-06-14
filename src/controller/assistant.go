@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"finance-tracker/src/assistant"
 	"finance-tracker/src/usecase"
 )
 
@@ -37,6 +38,7 @@ func (c *AssistantController) page(rw http.ResponseWriter, _ *http.Request) {
 
 type askRequest struct {
 	Question string `json:"question"`
+	Model    string `json:"model"` // optional; empty uses the default model
 }
 
 type askResponse struct {
@@ -62,7 +64,7 @@ func (c *AssistantController) ask(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	answer, err := c.useCase.Ask(r.Context(), req.Question)
+	answer, err := c.useCase.Ask(r.Context(), req.Question, req.Model)
 	if err != nil {
 		http.Error(rw, err.Error(), http.StatusInternalServerError)
 		return
@@ -70,6 +72,33 @@ func (c *AssistantController) ask(rw http.ResponseWriter, r *http.Request) {
 
 	rw.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(rw).Encode(askResponse{Answer: answer})
+}
+
+type modelsResponse struct {
+	Default string            `json:"default"`
+	Models  []assistant.Model `json:"models"`
+}
+
+// models godoc
+// @Summary     List available models
+// @Description Returns the Gemini models that support generation, plus the default. Protected by HTTP Basic Auth.
+// @Tags        Assistant
+// @Produce     json
+// @Success     200  {object}  modelsResponse
+// @Failure     401  {string}  string  "Unauthorized"
+// @Failure     500  {string}  string  "Internal Server Error"
+// @Router      /assistant/models [get]
+func (c *AssistantController) models(rw http.ResponseWriter, r *http.Request) {
+	models, err := c.useCase.Models(r.Context())
+	if err != nil {
+		http.Error(rw, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	rw.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(rw).Encode(modelsResponse{
+		Default: c.useCase.DefaultModel(),
+		Models:  models,
+	})
 }
 
 // basicAuth wraps a handler with HTTP Basic Auth, comparing credentials in
@@ -90,5 +119,6 @@ func (c *AssistantController) basicAuth(next http.HandlerFunc) http.HandlerFunc 
 
 func (c *AssistantController) Register(mux *http.ServeMux) {
 	mux.HandleFunc("GET /assistant", c.basicAuth(c.page))
+	mux.HandleFunc("GET /assistant/models", c.basicAuth(c.models))
 	mux.HandleFunc("POST /assistant/ask", c.basicAuth(c.ask))
 }

@@ -2,6 +2,9 @@ basePath: /api
 definitions:
   controller.askRequest:
     properties:
+      model:
+        description: optional; empty uses the default model
+        type: string
       question:
         type: string
     type: object

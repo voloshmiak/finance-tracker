@@ -3,12 +3,53 @@ package assistant
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"google.golang.org/genai"
 )
 
 // maxToolTurns bounds the agentic loop so a misbehaving model cannot loop forever.
 const maxToolTurns = 8
+
+// Model is a Gemini model the user can pick from in the UI.
+type Model struct {
+	ID    string `json:"id"`    // e.g. "gemini-2.5-flash"
+	Label string `json:"label"` // human-friendly display name
+}
+
+// ListModels queries the Gemini API for models that support generateContent.
+func (a *Assistant) ListModels(ctx context.Context) ([]Model, error) {
+	var models []Model
+	for m, err := range a.client.Models.All(ctx) {
+		if err != nil {
+			return nil, fmt.Errorf("list models: %w", err)
+		}
+		if !supportsGenerate(m) {
+			continue
+		}
+		id := strings.TrimPrefix(m.Name, "models/")
+		label := m.DisplayName
+		if label == "" {
+			label = id
+		}
+		models = append(models, Model{ID: id, Label: label})
+	}
+	return models, nil
+}
+
+func supportsGenerate(m *genai.Model) bool {
+	for _, a := range m.SupportedActions {
+		if a == "generateContent" {
+			return true
+		}
+	}
+	return false
+}
+
+// DefaultModel returns the model used when a request does not specify one.
+func (a *Assistant) DefaultModel() string {
+	return a.model
+}
 
 const systemPrompt = `Ти — фінансовий асистент у застосунку обліку особистих витрат.
 Користувач ставить питання українською про свої витрати з банківських карток.
@@ -29,7 +70,7 @@ const systemPrompt = `Ти — фінансовий асистент у заст
 
 Щоб відповісти, ВИКОРИСТОВУЙ інструмент run_sql — пиши лише SELECT-запити.
 Суми діли на 100, щоб показати гривні. Витрати показуй як додатні числа за модулем.
-Відповідай стисло, українською, з конкретними числами. Якщо даних нема — так і скажи.`
+Відповідай українською, з конкретними числами. Якщо даних нема — так і скажи.`
 
 // Assistant answers natural-language questions about the user's finances by
 // letting Gemini call a read-only SQL tool.
@@ -70,8 +111,12 @@ func sqlToolDeclaration() *genai.Tool {
 }
 
 // Ask runs the agentic loop: the model may call run_sql several times before
-// producing a final natural-language answer.
-func (a *Assistant) Ask(ctx context.Context, question string) (string, error) {
+// producing a final natural-language answer. An empty model uses the default.
+func (a *Assistant) Ask(ctx context.Context, question, model string) (string, error) {
+	if model == "" {
+		model = a.model
+	}
+
 	config := &genai.GenerateContentConfig{
 		SystemInstruction: genai.NewContentFromText(systemPrompt, genai.RoleUser),
 		Tools:             []*genai.Tool{sqlToolDeclaration()},
@@ -82,7 +127,7 @@ func (a *Assistant) Ask(ctx context.Context, question string) (string, error) {
 	}
 
 	for turn := 0; turn < maxToolTurns; turn++ {
-		resp, err := a.client.Models.GenerateContent(ctx, a.model, contents, config)
+		resp, err := a.client.Models.GenerateContent(ctx, model, contents, config)
 		if err != nil {
 			return "", fmt.Errorf("gemini call: %w", err)
 		}

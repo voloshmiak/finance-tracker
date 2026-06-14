@@ -217,6 +217,10 @@ const docTemplate = `{
         "controller.askRequest": {
             "type": "object",
             "properties": {
+                "model": {
+                    "description": "optional; empty uses the default model",
+                    "type": "string"
+                },
                 "question": {
                     "type": "string"
                 }

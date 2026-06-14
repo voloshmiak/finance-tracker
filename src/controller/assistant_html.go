@@ -24,10 +24,17 @@ const assistantHTML = `<!DOCTYPE html>
     input:focus { border-color:var(--me); }
     button { padding:12px 20px; border:none; border-radius:10px; background:var(--me); color:#fff; font-size:15px; cursor:pointer; }
     button:disabled { opacity:.5; cursor:default; }
+    header { display:flex; align-items:center; gap:12px; }
+    header .title { flex:1; }
+    select { padding:7px 10px; border-radius:8px; border:1px solid #2a2f3a; background:var(--panel); color:var(--text); font-size:13px; outline:none; cursor:pointer; }
+    select:focus { border-color:var(--me); }
   </style>
 </head>
 <body>
-  <header>💰 Фінансовий асистент <span>запитай про свої витрати</span></header>
+  <header>
+    <span class="title">💰 Financial Assistant</span>
+    <select id="model" title="Модель Gemini"></select>
+  </header>
   <div id="chat"></div>
   <form id="form">
     <input id="q" placeholder="Скільки я витратив на їжу минулого місяця?" autocomplete="off" autofocus />
@@ -38,6 +45,23 @@ const assistantHTML = `<!DOCTYPE html>
     const form = document.getElementById('form');
     const input = document.getElementById('q');
     const send = document.getElementById('send');
+    const modelSel = document.getElementById('model');
+
+    // Populate the model dropdown from the API, marking the default as selected.
+    (async () => {
+      try {
+        const res = await fetch('/api/assistant/models');
+        if (!res.ok) return;
+        const data = await res.json();
+        for (const m of data.models) {
+          const opt = document.createElement('option');
+          opt.value = m.id;
+          opt.textContent = m.label;
+          if (m.id === data.default) opt.selected = true;
+          modelSel.appendChild(opt);
+        }
+      } catch (_) { /* dropdown stays empty; backend uses default */ }
+    })();
 
     function bubble(text, cls) {
       const d = document.createElement('div');
@@ -60,7 +84,7 @@ const assistantHTML = `<!DOCTYPE html>
         const res = await fetch('/api/assistant/ask', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ question: q }),
+          body: JSON.stringify({ question: q, model: modelSel.value }),
         });
         const data = await res.json();
         thinking.remove();
