@@ -52,3 +52,4 @@ jobs:
             TELEGRAM_HOST=${{ env.TELEGRAM_HOST }}
             TELEGRAM_TOKEN=${{ secrets.TELEGRAM_TOKEN }}
             TELEGRAM_CHAT_ID=${{ secrets.TELEGRAM_CHAT_ID }}
+            TELEGRAM_WEBHOOK_SECRET=${{ secrets.TELEGRAM_WEBHOOK_SECRET }}

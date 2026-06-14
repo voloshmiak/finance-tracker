@@ -34,9 +34,10 @@ func (d Database) DSN() string {
 }
 
 type Telegram struct {
-	Token  string `env:"TELEGRAM_TOKEN,required"`
-	ChatID int    `env:"TELEGRAM_CHAT_ID,required"`
-	Host   string `env:"TELEGRAM_HOST" envDefault:"https://api.telegram.org"`
+	Token         string `env:"TELEGRAM_TOKEN,required"`
+	ChatID        int    `env:"TELEGRAM_CHAT_ID,required"`
+	Host          string `env:"TELEGRAM_HOST" envDefault:"https://api.telegram.org"`
+	WebhookSecret string `env:"TELEGRAM_WEBHOOK_SECRET,required"`
 }
 
 func New() (*Config, error) {

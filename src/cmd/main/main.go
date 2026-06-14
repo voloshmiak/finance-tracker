@@ -4,6 +4,8 @@ import (
 	"finance-tracker/src/config"
 	"finance-tracker/src/controller"
 	"finance-tracker/src/database"
+	"finance-tracker/src/parser"
+	"finance-tracker/src/repository"
 	"finance-tracker/src/server"
 	"finance-tracker/src/telegram"
 	"finance-tracker/src/usecase"
@@ -38,11 +40,19 @@ func run() error {
 
 	client := telegram.NewClient(c.Telegram.Token, c.Telegram.Host, c.Telegram.ChatID)
 
+	transactionRepository := repository.NewTransactionRepository(db.Conn())
+	cardRepository := repository.NewCardRepository(db.Conn())
+	parserRegistry := parser.NewRegistry()
+
 	s := server.New(":"+c.Server.Port,
 		controller.NewDocsController(),
 		controller.NewHealthController(),
 		controller.NewReminderController(
-			usecase.NewReminder(client, c.Server.AuthToken),
+			usecase.NewReminder(client, cardRepository, c.Server.AuthToken),
+		),
+		controller.NewWebhookController(
+			usecase.NewWebhook(parserRegistry, transactionRepository, client, client, c.Telegram.ChatID),
+			c.Telegram.WebhookSecret,
 		),
 	)
 
