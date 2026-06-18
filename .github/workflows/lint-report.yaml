@@ -1,0 +1,42 @@
+name: lint-report
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+  pull-requests: write   # sticky comment
+
+jobs:
+  lint-budget:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0          # full history for merge-base / diff
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Lint budget report
+        id: lint
+        env:
+          ALLOWED_NEW: "5"
+          ALLOWED_TOTAL: "1"
+        run: bash .github/scripts/lint-report.sh "origin/${{ github.base_ref }}"
+
+      - name: Post sticky comment
+        if: always()
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: lint-budget      # identifies the comment to update in place
+          path: lint-report.md
+
+      - name: Enforce budget
+        if: always()
+        run: |
+          if [[ "${{ steps.lint.outputs.status }}" != "success" ]]; then
+            echo "::error::Lint budget exceeded"
+            exit 1
+          fi

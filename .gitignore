@@ -1,3 +1,9 @@
 .idea
 .env
 tmp
+
+# lint-report.sh working files
+full.json
+new.json
+counts.json
+lint-report.md
