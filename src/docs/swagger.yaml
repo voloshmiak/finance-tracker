@@ -1,18 +1,8 @@
 basePath: /api
 definitions:
-  assistant.Model:
-    properties:
-      id:
-        description: e.g. "gemini-2.5-flash"
-        type: string
-      label:
-        description: human-friendly display name
-        type: string
-    type: object
   controller.askRequest:
     properties:
       model:
-        description: optional; empty uses the default model
         type: string
       question:
         type: string
@@ -21,15 +11,6 @@ definitions:
     properties:
       answer:
         type: string
-    type: object
-  controller.modelsResponse:
-    properties:
-      default:
-        type: string
-      models:
-        items:
-          $ref: '#/definitions/assistant.Model'
-        type: array
     type: object
   telegram.Chat:
     properties:
@@ -121,28 +102,6 @@ paths:
           schema:
             type: string
       summary: Ask the assistant
-      tags:
-      - Assistant
-  /assistant/models:
-    get:
-      description: Returns the Gemini models that support generation, plus the default.
-        Protected by HTTP Basic Auth.
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/controller.modelsResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            type: string
-        "500":
-          description: Internal Server Error
-          schema:
-            type: string
-      summary: List available models
       tags:
       - Assistant
   /cron/reminder:

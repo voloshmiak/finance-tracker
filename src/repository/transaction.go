@@ -5,17 +5,16 @@ import (
 	"crypto/sha256"
 	"database/sql"
 	"encoding/hex"
-	"fmt"
-
 	"finance-tracker/src/entity"
+	"fmt"
 )
 
-type TransactionRepository struct {
+type Transactions struct {
 	conn *sql.DB
 }
 
-func NewTransactionRepository(conn *sql.DB) *TransactionRepository {
-	return &TransactionRepository{conn: conn}
+func NewTransactions(conn *sql.DB) *Transactions {
+	return &Transactions{conn: conn}
 }
 
 func dedupHash(t *entity.Transaction) string {
@@ -25,7 +24,7 @@ func dedupHash(t *entity.Transaction) string {
 	return hex.EncodeToString(sum[:])
 }
 
-func (r *TransactionRepository) Save(ctx context.Context, txs []*entity.Transaction) (int, error) {
+func (r *Transactions) Save(ctx context.Context, txs []*entity.Transaction) (int, error) {
 	if len(txs) == 0 {
 		return 0, nil
 	}

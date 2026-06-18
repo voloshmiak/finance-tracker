@@ -1,8 +1,8 @@
 package main
 
 import (
-	"context"
 	"finance-tracker/src/assistant"
+	"finance-tracker/src/assistant/tool"
 	"finance-tracker/src/config"
 	"finance-tracker/src/controller"
 	"finance-tracker/src/database"
@@ -42,39 +42,37 @@ func run() error {
 
 	client := telegram.NewClient(c.Telegram.Token, c.Telegram.Host, c.Telegram.ChatID)
 
-	transactionRepository := repository.NewTransactionRepository(db.Conn())
-	cardRepository := repository.NewCardRepository(db.Conn())
-	parserRegistry := parser.NewRegistry()
+	transactions := repository.NewTransactions(db.Conn())
+	cards := repository.NewCards(db.Conn())
+	parsers := parser.NewRegistry()
 
-	// The assistant's SQL tool runs under a dedicated read-only connection.
 	readDB, err := database.New(c.Database.ReadOnlyDSN())
 	if err != nil {
 		return err
 	}
 	defer readDB.Conn().Close()
 
-	ai, err := assistant.New(context.Background(),
-		c.Assistant.GeminiAPIKey, c.Assistant.Model,
-		assistant.NewSQLTool(readDB.Conn()),
-	)
+	sql := tool.NewSQL(readDB.Conn())
+
+	gemini, err := assistant.New(c.Assistant.GeminiAPIKey)
 	if err != nil {
 		return err
 	}
+	gemini.Register(sql)
 
-	s := server.New(":"+c.Server.Port,
-		controller.NewDocsController(),
-		controller.NewHealthController(),
-		controller.NewReminderController(
-			usecase.NewReminder(client, cardRepository, c.Server.AuthToken),
-		),
-		controller.NewWebhookController(
-			usecase.NewWebhook(parserRegistry, transactionRepository, client, client, c.Telegram.ChatID),
-			c.Telegram.WebhookSecret,
-		),
-		controller.NewAssistantController(
-			usecase.NewAssistant(ai),
-			c.Assistant.Username, c.Assistant.Password,
-		),
+	reminder := usecase.NewReminder(client, cards, c.Server.AuthToken)
+	webhook := usecase.NewWebhook(parsers, transactions, client, client, c.Telegram.ChatID)
+	assistant := usecase.NewAssistant(gemini)
+
+	auth := server.BasicAuth(c.Assistant.Username, c.Assistant.Password)
+	s := server.New(":"+c.Server.Port, auth)
+	s.Register(
+		controller.NewDocs(),
+		controller.NewHealth(),
+		controller.NewReminder(reminder),
+		controller.NewWebhook(webhook, c.Telegram.WebhookSecret),
+		controller.NewAssistantPage(assistant),
+		controller.NewAssistantAsk(assistant),
 	)
 
 	return s.Start()

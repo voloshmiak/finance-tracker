@@ -3,23 +3,22 @@ package repository
 import (
 	"context"
 	"database/sql"
-	"time"
-
 	"finance-tracker/src/entity"
+	"time"
 )
 
-type CardRepository struct {
+type Cards struct {
 	conn *sql.DB
 }
 
-func NewCardRepository(conn *sql.DB) *CardRepository {
-	return &CardRepository{conn: conn}
+func NewCards(conn *sql.DB) *Cards {
+	return &Cards{conn: conn}
 }
 
 // MissingMonths returns, for each active card, the months since startFrom for
 // which no transaction has been imported yet. Months are returned as the first
 // day of the month. Cards with no gaps are omitted.
-func (r *CardRepository) MissingMonths(ctx context.Context, startFrom time.Time) ([]entity.MissingReport, error) {
+func (r *Cards) MissingMonths(ctx context.Context, startFrom time.Time) ([]entity.MissingReport, error) {
 	const query = `
 		WITH months AS (
 			SELECT generate_series(

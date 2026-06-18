@@ -2,6 +2,7 @@ package parser
 
 import (
 	"bytes"
+	"finance-tracker/src/entity"
 	"fmt"
 	"io"
 	"regexp"
@@ -9,7 +10,6 @@ import (
 	"strings"
 	"time"
 
-	"finance-tracker/src/entity"
 	"github.com/google/uuid"
 	"github.com/ledongthuc/pdf"
 )
@@ -78,7 +78,7 @@ func (p *Abank) Parse(r io.Reader) ([]*entity.Transaction, error) {
 	}
 
 	lines := make([]string, 0)
-	for _, l := range strings.Split(buf.String(), "\n") {
+	for l := range strings.SplitSeq(buf.String(), "\n") {
 		lines = append(lines, strings.TrimSpace(l))
 	}
 
@@ -112,7 +112,6 @@ func (p *Abank) parseBlock(b []string) (*entity.Transaction, error) {
 		return nil, fmt.Errorf("parse amount %q: %w", b[abColAmount], err)
 	}
 
-	cardMask := b[abColCard]
 	tx := &entity.Transaction{
 		ID:          uuid.New(),
 		Bank:        entity.BankAbank,
@@ -120,7 +119,7 @@ func (p *Abank) parseBlock(b []string) (*entity.Transaction, error) {
 		Description: b[abColDescription],
 		Amount:      amount,
 		Currency:    b[abColCurrency],
-		CardMask:    &cardMask,
+		CardMask:    new(b[abColCard]),
 	}
 
 	if !isBlank(b[abColMCC]) {
@@ -128,31 +127,31 @@ func (p *Abank) parseBlock(b []string) (*entity.Transaction, error) {
 		if err != nil {
 			return nil, fmt.Errorf("parse mcc %q: %w", b[abColMCC], err)
 		}
-		tx.MCC = ptr(mcc)
+		tx.MCC = new(mcc)
 	}
 
 	if v, ok, err := parseMoneyKop(b[abColOrigAmount]); err != nil {
 		return nil, fmt.Errorf("parse original amount: %w", err)
 	} else if ok {
-		tx.OriginalAmount = ptr(v)
+		tx.OriginalAmount = new(v)
 	}
 
 	if v, ok, err := parseMoneyKop(b[abColCommission]); err != nil {
 		return nil, fmt.Errorf("parse commission: %w", err)
 	} else if ok {
-		tx.Commission = ptr(v)
+		tx.Commission = new(v)
 	}
 
 	if v, ok, err := parseMoneyKop(b[abColCashback]); err != nil {
 		return nil, fmt.Errorf("parse cashback: %w", err)
 	} else if ok {
-		tx.Cashback = ptr(v)
+		tx.Cashback = new(v)
 	}
 
 	if v, ok, err := parseMoneyKop(b[abColBalanceAfter]); err != nil {
 		return nil, fmt.Errorf("parse balance: %w", err)
 	} else if ok {
-		tx.BalanceAfter = ptr(v)
+		tx.BalanceAfter = new(v)
 	}
 
 	return tx, nil

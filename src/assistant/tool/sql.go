@@ -1,4 +1,4 @@
-package assistant
+package tool
 
 import (
 	"context"
@@ -6,39 +6,61 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+
+	"google.golang.org/genai"
 )
 
-// maxRows caps how many rows a single tool call may return, to keep the model's
-// context bounded.
 const maxRows = 200
 
-// SQLTool executes read-only SELECT queries against the transactions database.
-// It is deliberately backed by a read-only connection AND validates the query,
-// so a hallucinated or injected mutation is rejected at two layers.
-type SQLTool struct {
+type SQL struct {
 	db *sql.DB
 }
 
-func NewSQLTool(db *sql.DB) *SQLTool {
-	return &SQLTool{db: db}
+func NewSQL(db *sql.DB) *SQL {
+	return &SQL{db: db}
 }
 
-// Run validates and executes a SELECT, returning the rows as JSON text suitable
-// for feeding back to the model.
-func (t *SQLTool) Run(ctx context.Context, query string) (string, error) {
+func (t *SQL) Declaration() *genai.FunctionDeclaration {
+	return &genai.FunctionDeclaration{
+		Name:        "run_sql",
+		Description: "Виконує SELECT-запит до бази даних транзакцій і повертає рядки у форматі JSON.",
+		Parameters: &genai.Schema{
+			Type: genai.TypeObject,
+			Properties: map[string]*genai.Schema{
+				"query": {
+					Type:        genai.TypeString,
+					Description: "Один SELECT-запит PostgreSQL. Без крапки з комою в кінці, без мутацій.",
+				},
+			},
+			Required: []string{"query"},
+		},
+	}
+}
+
+func (t *SQL) Execute(ctx context.Context, args map[string]any) (map[string]any, error) {
+	query, ok := args["query"].(string)
+	if !ok {
+		return nil, fmt.Errorf("missing or invalid 'query' argument")
+	}
 	if err := validateSelect(query); err != nil {
-		return "", err
+		return map[string]any{
+			"error": fmt.Sprintf("invalid query: %s", err),
+		}, nil
 	}
 
 	rows, err := t.db.QueryContext(ctx, query)
 	if err != nil {
-		return "", fmt.Errorf("query failed: %w", err)
+		return map[string]any{
+			"error": fmt.Sprintf("query failed: %s", err),
+		}, nil
 	}
 	defer rows.Close()
 
 	cols, err := rows.Columns()
 	if err != nil {
-		return "", err
+		return map[string]any{
+			"error": err.Error(),
+		}, nil
 	}
 
 	var out []map[string]any
@@ -49,7 +71,9 @@ func (t *SQLTool) Run(ctx context.Context, query string) (string, error) {
 			ptrs[i] = &values[i]
 		}
 		if err := rows.Scan(ptrs...); err != nil {
-			return "", err
+			return map[string]any{
+				"error": err.Error(),
+			}, nil
 		}
 		row := make(map[string]any, len(cols))
 		for i, c := range cols {
@@ -58,14 +82,20 @@ func (t *SQLTool) Run(ctx context.Context, query string) (string, error) {
 		out = append(out, row)
 	}
 	if err := rows.Err(); err != nil {
-		return "", err
+		return map[string]any{
+			"error": err.Error(),
+		}, nil
 	}
 
 	payload, err := json.Marshal(out)
 	if err != nil {
-		return "", err
+		return map[string]any{
+			"error": err.Error(),
+		}, nil
 	}
-	return string(payload), nil
+	return map[string]any{
+		"payload": string(payload),
+	}, nil
 }
 
 // normalize converts driver byte slices to strings so JSON output is readable.
@@ -108,7 +138,7 @@ func validateSelect(query string) error {
 
 func containsWord(s, word string) bool {
 	for _, field := range strings.FieldsFunc(s, func(r rune) bool {
-		return !(r >= 'a' && r <= 'z')
+		return r < 'a' || r > 'z'
 	}) {
 		if field == word {
 			return true

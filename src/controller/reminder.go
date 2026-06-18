@@ -2,16 +2,17 @@ package controller
 
 import (
 	"errors"
+	"finance-tracker/src/server"
 	"finance-tracker/src/usecase"
 	"net/http"
 )
 
-type ReminderController struct {
+type Reminder struct {
 	useCase *usecase.Reminder
 }
 
-func NewReminderController(useCase *usecase.Reminder) *ReminderController {
-	return &ReminderController{
+func NewReminder(useCase *usecase.Reminder) *Reminder {
+	return &Reminder{
 		useCase: useCase,
 	}
 }
@@ -25,7 +26,7 @@ func NewReminderController(useCase *usecase.Reminder) *ReminderController {
 // @Failure     401   {object}  string  "Unauthorized"
 // @Failure     500   {object}  string  "Internal Server Error"
 // @Router      /cron/reminder [post]
-func (c *ReminderController) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
+func (c *Reminder) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	if err := c.useCase.Execute(r.Context(), r.Header.Get("Authorization")); err != nil {
 		if errors.Is(err, usecase.ErrUnauthorized) {
 			http.Error(rw, err.Error(), http.StatusUnauthorized)
@@ -38,6 +39,9 @@ func (c *ReminderController) ServeHTTP(rw http.ResponseWriter, r *http.Request) 
 	rw.WriteHeader(http.StatusOK)
 }
 
-func (c *ReminderController) Register(mux *http.ServeMux) {
-	mux.Handle("POST /cron/reminder", c)
+func (c *Reminder) Route() server.Route {
+	return server.Route{
+		Pattern: "POST /cron/reminder",
+		Handler: c,
+	}
 }

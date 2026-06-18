@@ -1,0 +1,21 @@
+services:
+  grafana:
+    image: grafana/grafana:11.4.0
+    container_name: finance-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      # Grafana reads the Neon read-only credentials from your .env.
+      GF_DB_HOST: ${DB_HOST}
+      GF_DB_NAME: ${DB_NAME}
+      GF_DB_USER: ${DB_READONLY_USER}
+      GF_DB_PASSWORD: ${DB_READONLY_PASSWORD}
+      # Disable sign-up; default admin login is admin/admin (change on first run).
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+    restart: unless-stopped
+
+volumes:
+  grafana-data:

@@ -4,11 +4,10 @@ import (
 	"context"
 	"crypto/subtle"
 	"errors"
+	"finance-tracker/src/entity"
 	"fmt"
 	"strings"
 	"time"
-
-	"finance-tracker/src/entity"
 )
 
 var ErrUnauthorized = errors.New("invalid auth token")

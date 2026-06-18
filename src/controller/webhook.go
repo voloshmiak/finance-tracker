@@ -3,23 +3,23 @@ package controller
 import (
 	"crypto/subtle"
 	"encoding/json"
-	"net/http"
-
+	"finance-tracker/src/server"
 	"finance-tracker/src/telegram"
 	"finance-tracker/src/usecase"
+	"net/http"
 )
 
 // secretTokenHeader is set by Telegram when the webhook is registered with a
 // secret_token, letting us verify the request really comes from Telegram.
 const secretTokenHeader = "X-Telegram-Bot-Api-Secret-Token"
 
-type WebhookController struct {
+type Webhook struct {
 	useCase *usecase.Webhook
 	secret  string
 }
 
-func NewWebhookController(useCase *usecase.Webhook, secret string) *WebhookController {
-	return &WebhookController{
+func NewWebhook(useCase *usecase.Webhook, secret string) *Webhook {
+	return &Webhook{
 		useCase: useCase,
 		secret:  secret,
 	}
@@ -36,7 +36,7 @@ func NewWebhookController(useCase *usecase.Webhook, secret string) *WebhookContr
 // @Failure     401  {object}  string  "Invalid secret token"
 // @Failure     500  {object}  string  "Internal Server Error"
 // @Router      /webhook [post]
-func (c *WebhookController) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
+func (c *Webhook) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	got := r.Header.Get(secretTokenHeader)
 	if got == "" || subtle.ConstantTimeCompare([]byte(got), []byte(c.secret)) != 1 {
 		http.Error(rw, "unauthorized", http.StatusUnauthorized)
@@ -57,6 +57,9 @@ func (c *WebhookController) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	rw.WriteHeader(http.StatusOK)
 }
 
-func (c *WebhookController) Register(mux *http.ServeMux) {
-	mux.Handle("POST /webhook", c)
+func (c *Webhook) Route() server.Route {
+	return server.Route{
+		Pattern: "POST /webhook",
+		Handler: c,
+	}
 }

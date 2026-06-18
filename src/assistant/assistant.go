@@ -3,75 +3,22 @@ package assistant
 import (
 	"context"
 	"fmt"
-	"strings"
+	"maps"
 	"time"
 
 	"google.golang.org/genai"
 )
 
-// maxToolTurns bounds the agentic loop so a misbehaving model cannot loop forever.
 const maxToolTurns = 8
 
-// Model is a Gemini model the user can pick from in the UI.
-type Model struct {
-	ID    string `json:"id"`    // e.g. "gemini-2.5-flash"
-	Label string `json:"label"` // human-friendly display name
+var allowedModels = map[string]bool{
+	"gemini-2.5-flash": true,
+	"gemini-3.5-flash": true,
 }
 
-// ListModels queries the Gemini API for models that support generateContent.
-func (a *Assistant) ListModels(ctx context.Context) ([]Model, error) {
-	var models []Model
-	for m, err := range a.client.Models.All(ctx) {
-		if err != nil {
-			return nil, fmt.Errorf("list models: %w", err)
-		}
-		if !supportsGenerate(m) {
-			continue
-		}
-		id := strings.TrimPrefix(m.Name, "models/")
-		if !suitableForTools(id) {
-			continue
-		}
-		label := m.DisplayName
-		if label == "" {
-			label = id
-		}
-		models = append(models, Model{ID: id, Label: label})
-	}
-	return models, nil
-}
-
-func supportsGenerate(m *genai.Model) bool {
-	for _, a := range m.SupportedActions {
-		if a == "generateContent" {
-			return true
-		}
-	}
-	return false
-}
-
-// suitableForTools keeps only stable Gemini chat models that support function
-// calling. Embedding/TTS/image/vision-only and preview/experimental variants
-// either lack tool support or use an incompatible request shape, which is what
-// caused "gemini call" errors on non-flash models.
-func suitableForTools(id string) bool {
-	if !strings.HasPrefix(id, "gemini-") {
-		return false
-	}
-	for _, bad := range []string{
-		"embedding", "tts", "image", "vision", "live",
-		"preview", "exp", "thinking", "learnlm",
-	} {
-		if strings.Contains(id, bad) {
-			return false
-		}
-	}
-	return true
-}
-
-// DefaultModel returns the model used when a request does not specify one.
-func (a *Assistant) DefaultModel() string {
-	return a.model
+type Tool interface {
+	Declaration() *genai.FunctionDeclaration
+	Execute(ctx context.Context, args map[string]any) (map[string]any, error)
 }
 
 func systemPrompt() string {
@@ -130,54 +77,44 @@ func systemPrompt() string {
 `
 }
 
-// Assistant answers natural-language questions about the user's finances by
-// letting Gemini call a read-only SQL tool.
 type Assistant struct {
-	client  *genai.Client
-	model   string
-	sqlTool *SQLTool
+	client *genai.Client
+	tools  map[string]Tool
+	decls  []*genai.Tool
 }
 
-func New(ctx context.Context, apiKey, model string, sqlTool *SQLTool) (*Assistant, error) {
-	client, err := genai.NewClient(ctx, &genai.ClientConfig{
+func New(apiKey string) (*Assistant, error) {
+	client, err := genai.NewClient(context.Background(), &genai.ClientConfig{
 		APIKey:  apiKey,
 		Backend: genai.BackendGeminiAPI,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("create genai client: %w", err)
 	}
-	return &Assistant{client: client, model: model, sqlTool: sqlTool}, nil
+	return &Assistant{
+		client: client,
+		tools:  make(map[string]Tool),
+	}, nil
 }
 
-func sqlToolDeclaration() *genai.Tool {
-	return &genai.Tool{
-		FunctionDeclarations: []*genai.FunctionDeclaration{{
-			Name:        "run_sql",
-			Description: "Виконує SELECT-запит до бази даних транзакцій і повертає рядки у форматі JSON.",
-			Parameters: &genai.Schema{
-				Type: genai.TypeObject,
-				Properties: map[string]*genai.Schema{
-					"query": {
-						Type:        genai.TypeString,
-						Description: "Один SELECT-запит PostgreSQL. Без крапки з комою в кінці, без мутацій.",
-					},
-				},
-				Required: []string{"query"},
-			},
-		}},
+func (a *Assistant) Register(tools ...Tool) {
+	for _, tool := range tools {
+		a.tools[tool.Declaration().Name] = tool
+		a.decls = append(a.decls, &genai.Tool{
+			FunctionDeclarations: []*genai.FunctionDeclaration{tool.Declaration()},
+		})
 	}
 }
 
-// Ask runs the agentic loop: the model may call run_sql several times before
-// producing a final natural-language answer. An empty model uses the default.
 func (a *Assistant) Ask(ctx context.Context, question, model string) (string, error) {
-	if model == "" {
-		model = a.model
+	if !allowedModels[model] {
+		return "", fmt.Errorf("model %q not allowed; must be one of: %v",
+			model, maps.Keys(allowedModels))
 	}
 
 	config := &genai.GenerateContentConfig{
 		SystemInstruction: genai.NewContentFromText(systemPrompt(), genai.RoleUser),
-		Tools:             []*genai.Tool{sqlToolDeclaration()},
+		Tools:             a.decls,
 	}
 
 	contents := []*genai.Content{
@@ -211,17 +148,17 @@ func (a *Assistant) Ask(ctx context.Context, question, model string) (string, er
 	return "", fmt.Errorf("assistant exceeded %d tool turns without answering", maxToolTurns)
 }
 
-// dispatch executes a single tool call and returns the response payload.
+// dispatch routes a function call to its registered tool. Unknown tools and
+// execution errors are reported back to the model so it can recover.
 func (a *Assistant) dispatch(ctx context.Context, call *genai.FunctionCall) map[string]any {
-	if call.Name != "run_sql" {
+	tool, ok := a.tools[call.Name]
+	if !ok {
 		return map[string]any{"error": fmt.Sprintf("unknown tool %q", call.Name)}
 	}
 
-	query, _ := call.Args["query"].(string)
-	rows, err := a.sqlTool.Run(ctx, query)
+	result, err := tool.Execute(ctx, call.Args)
 	if err != nil {
-		// Feed the error back so the model can correct its query.
 		return map[string]any{"error": err.Error()}
 	}
-	return map[string]any{"rows": rows}
+	return result
 }

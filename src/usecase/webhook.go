@@ -2,13 +2,12 @@ package usecase
 
 import (
 	"context"
-	"fmt"
-	"io"
-	"regexp"
-
 	"finance-tracker/src/entity"
 	"finance-tracker/src/parser"
 	"finance-tracker/src/telegram"
+	"fmt"
+	"io"
+	"regexp"
 )
 
 // last4Re extracts the 4-digit card identifier from a message caption.

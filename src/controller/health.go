@@ -1,12 +1,14 @@
 package controller
 
-import "net/http"
+import (
+	"finance-tracker/src/server"
+	"net/http"
+)
 
-type HealthController struct {
-}
+type Health struct{}
 
-func NewHealthController() *HealthController {
-	return &HealthController{}
+func NewHealth() *Health {
+	return &Health{}
 }
 
 // ServeHTTP godoc
@@ -15,10 +17,13 @@ func NewHealthController() *HealthController {
 // @Tags        System
 // @Success     200  {string}  string  "OK"
 // @Router      /health [get]
-func (h *HealthController) ServeHTTP(rw http.ResponseWriter, _ *http.Request) {
+func (h *Health) ServeHTTP(rw http.ResponseWriter, _ *http.Request) {
 	rw.WriteHeader(http.StatusOK)
 }
 
-func (h *HealthController) Register(mux *http.ServeMux) {
-	mux.Handle("GET /health", h)
+func (h *Health) Route() server.Route {
+	return server.Route{
+		Pattern: "GET /health",
+		Handler: h,
+	}
 }

@@ -2,13 +2,12 @@ package parser
 
 import (
 	"errors"
+	"finance-tracker/src/entity"
 	"io"
 	"math"
 	"strconv"
 	"strings"
 	"time"
-
-	"finance-tracker/src/entity"
 )
 
 // ErrUnsupportedFormat is returned when a statement format has no parser.
@@ -51,8 +50,4 @@ func parseMoneyKop(s string) (int, bool, error) {
 		return 0, false, err
 	}
 	return int(math.Round(f * 100)), true, nil
-}
-
-func ptr[T any](v T) *T {
-	return &v
 }

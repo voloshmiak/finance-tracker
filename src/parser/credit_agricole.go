@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"finance-tracker/src/entity"
 	"fmt"
 	"io"
 	"regexp"
@@ -8,7 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"finance-tracker/src/entity"
 	"github.com/google/uuid"
 	"github.com/xuri/excelize/v2"
 )
@@ -128,14 +128,14 @@ func (p *CreditAgricole) parseRow(row []string, cardMask *string) (*entity.Trans
 	// CA embeds the MCC inside the description as "[5655]" rather than a column.
 	if m := caMCCRe.FindStringSubmatch(description); m != nil {
 		if mcc, err := strconv.Atoi(m[1]); err == nil {
-			tx.MCC = ptr(mcc)
+			tx.MCC = new(mcc)
 		}
 	}
 
 	if v, ok, err := parseMoneyKop(cell(row, caColOrigAmount)); err != nil {
 		return nil, fmt.Errorf("parse original amount: %w", err)
 	} else if ok {
-		tx.OriginalAmount = ptr(v)
+		tx.OriginalAmount = new(v)
 	}
 
 	return tx, nil
@@ -154,8 +154,7 @@ func extractCardMask(rows [][]string) *string {
 	for _, row := range rows {
 		for _, c := range row {
 			if mask := cardMaskRe.FindString(c); mask != "" {
-				m := strings.TrimSpace(mask)
-				return &m
+				return new(strings.TrimSpace(mask))
 			}
 		}
 	}

@@ -1,0 +1,18 @@
+apiVersion: 1
+
+datasources:
+  - name: Finance (Neon)
+    type: postgres
+    uid: finance_pg
+    access: proxy
+    url: ${GF_DB_HOST}:5432
+    database: ${GF_DB_NAME}
+    user: ${GF_DB_USER}
+    secureJsonData:
+      password: ${GF_DB_PASSWORD}
+    jsonData:
+      sslmode: require          # Neon requires TLS
+      postgresVersion: 1500
+      timescaledb: false
+    isDefault: true
+    editable: true

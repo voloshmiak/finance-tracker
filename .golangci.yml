@@ -1,0 +1,49 @@
+version: "2"
+
+run:
+  timeout: 5m
+
+linters:
+  default: standard          # errcheck, govet, ineffassign, staticcheck, unused
+  enable:
+    - bodyclose              # незакриті resp.Body у HTTP-клієнтах
+    - errorlint              # коректне обгортання помилок
+    - misspell
+    - revive                 # заміна golint
+    - unconvert
+    - unparam
+
+  settings:
+    errcheck:
+      # помилку закриття/відкату у defer свідомо ігноруємо — вона тут несуттєва
+      exclude-functions:
+        - (io.Closer).Close
+        - (*os.File).Close
+        - (*database/sql.DB).Close
+        - (*database/sql.Rows).Close
+        - (*database/sql.Stmt).Close
+        - (*database/sql.Tx).Rollback
+        - (github.com/golang-migrate/migrate/v4/source.Driver).Close
+        - (*github.com/xuri/excelize/v2.File).Close
+    revive:
+      rules:
+        - name: exported           # не вимагати doc-коментарі на експортованих символах
+          disabled: true
+        - name: package-comments   # не вимагати коментар над package …
+          disabled: true
+
+  # fieldalignment навмисно НЕ вмикаємо в govet — він педантичний і
+  # конфліктує з читабельністю структур. Ганяємо його руками:
+  #   go run golang.org/x/tools/go/analysis/passes/fieldalignment/cmd/fieldalignment@latest ./...
+
+  exclusions:
+    generated: lax
+    rules:
+      - path: _test\.go
+        linters:
+          - errcheck
+
+formatters:
+  enable:
+    - gofumpt                # суворіший gofmt
+    - goimports

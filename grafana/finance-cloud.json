@@ -1,0 +1,173 @@
+{
+  "__inputs": [
+    {
+      "name": "DS_POSTGRESQL",
+      "label": "PostgreSQL",
+      "description": "Виберіть ваш PostgreSQL datasource (Neon)",
+      "type": "datasource",
+      "pluginId": "grafana-postgresql-datasource",
+      "pluginName": "PostgreSQL"
+    }
+  ],
+  "uid": "finance-overview",
+  "title": "Finance Overview",
+  "tags": ["finance"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "time": { "from": "now-1y", "to": "now" },
+  "templating": {
+    "list": [
+      {
+        "name": "card",
+        "label": "Картка",
+        "type": "query",
+        "datasource": { "type": "postgres", "uid": "${DS_POSTGRESQL}" },
+        "query": "SELECT DISTINCT last4 FROM transactions ORDER BY last4",
+        "includeAll": true,
+        "multi": true,
+        "current": { "text": "All", "value": "$__all" }
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Витрати за період (без переказів)",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
+      "datasource": { "type": "postgres", "uid": "${DS_POSTGRESQL}" },
+      "fieldConfig": { "defaults": { "unit": "currencyUAH", "decimals": 2 } },
+      "targets": [
+        {
+          "rawSql": "SELECT COALESCE(SUM(-amount),0)/100.0 AS \"Витрати\" FROM transactions t WHERE amount < 0 AND operated_at BETWEEN $__timeFrom() AND $__timeTo() AND last4 IN ($card) AND NOT EXISTS (SELECT 1 FROM mcc_categories mc WHERE mc.mcc = t.mcc AND mc.is_spending = false)",
+          "format": "table",
+          "rawQuery": true
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Дохід за період",
+      "description": "Надходження без переказів між власними картками (зарплата, перекази від інших, кешбек).",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 },
+      "datasource": { "type": "postgres", "uid": "${DS_POSTGRESQL}" },
+      "fieldConfig": { "defaults": { "unit": "currencyUAH", "decimals": 2, "color": { "mode": "fixed", "fixedColor": "green" } } },
+      "targets": [
+        {
+          "rawSql": "SELECT COALESCE(SUM(amount),0)/100.0 AS \"Дохід\" FROM transactions WHERE amount > 0 AND operated_at BETWEEN $__timeFrom() AND $__timeTo() AND last4 IN ($card) AND description NOT ILIKE '%своєї картки%' AND description NOT ILIKE '%Voloshenko%' AND description NOT ILIKE '%зняття банки%'",
+          "format": "table",
+          "rawQuery": true
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Надходження за період (усі)",
+      "description": "Усі додатні транзакції разом, включно з переказами між власними картками.",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 0 },
+      "datasource": { "type": "postgres", "uid": "${DS_POSTGRESQL}" },
+      "fieldConfig": { "defaults": { "unit": "currencyUAH", "decimals": 2, "color": { "mode": "fixed", "fixedColor": "blue" } } },
+      "targets": [
+        {
+          "rawSql": "SELECT COALESCE(SUM(amount),0)/100.0 AS \"Надходження\" FROM transactions WHERE amount > 0 AND operated_at BETWEEN $__timeFrom() AND $__timeTo() AND last4 IN ($card)",
+          "format": "table",
+          "rawQuery": true
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Середня витрата",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 0 },
+      "datasource": { "type": "postgres", "uid": "${DS_POSTGRESQL}" },
+      "fieldConfig": { "defaults": { "unit": "currencyUAH", "decimals": 2 } },
+      "targets": [
+        {
+          "rawSql": "SELECT COALESCE(AVG(-amount),0)/100.0 AS \"Середня\" FROM transactions t WHERE amount < 0 AND operated_at BETWEEN $__timeFrom() AND $__timeTo() AND last4 IN ($card) AND NOT EXISTS (SELECT 1 FROM mcc_categories mc WHERE mc.mcc = t.mcc AND mc.is_spending = false)",
+          "format": "table",
+          "rawQuery": true
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "Витрати по місяцях",
+      "type": "timeseries",
+      "gridPos": { "h": 9, "w": 24, "x": 0, "y": 4 },
+      "datasource": { "type": "postgres", "uid": "${DS_POSTGRESQL}" },
+      "fieldConfig": { "defaults": { "unit": "currencyUAH", "custom": { "drawStyle": "bars", "fillOpacity": 60 } } },
+      "targets": [
+        {
+          "rawSql": "SELECT date_trunc('month', operated_at) AS time, SUM(-amount)/100.0 AS \"Витрати\" FROM transactions t WHERE amount < 0 AND operated_at BETWEEN $__timeFrom() AND $__timeTo() AND last4 IN ($card) AND NOT EXISTS (SELECT 1 FROM mcc_categories mc WHERE mc.mcc = t.mcc AND mc.is_spending = false) GROUP BY 1 ORDER BY 1",
+          "format": "time_series",
+          "rawQuery": true
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "title": "Витрати за картками",
+      "type": "piechart",
+      "gridPos": { "h": 9, "w": 24, "x": 0, "y": 13 },
+      "datasource": { "type": "postgres", "uid": "${DS_POSTGRESQL}" },
+      "fieldConfig": { "defaults": { "unit": "currencyUAH" } },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "values": true },
+        "legend": { "displayMode": "table", "placement": "right", "values": ["value", "percent"] }
+      },
+      "transformations": [
+        {
+          "id": "rowsToFields",
+          "options": {
+            "mappings": [
+              { "fieldName": "Картка", "handlerKey": "field.name" },
+              { "fieldName": "Витрати", "handlerKey": "field.value" }
+            ]
+          }
+        }
+      ],
+      "targets": [
+        {
+          "rawSql": "SELECT COALESCE(c.label, t.bank || ' ****' || t.last4) AS \"Картка\", SUM(-t.amount)/100.0 AS \"Витрати\" FROM transactions t LEFT JOIN cards c ON c.last4 = t.last4 AND c.bank = t.bank WHERE t.amount < 0 AND t.operated_at BETWEEN $__timeFrom() AND $__timeTo() AND t.last4 IN ($card) AND NOT EXISTS (SELECT 1 FROM mcc_categories mc WHERE mc.mcc = t.mcc AND mc.is_spending = false) GROUP BY 1 ORDER BY 2 DESC",
+          "format": "table",
+          "rawQuery": true
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "title": "Витрати за категоріями",
+      "type": "barchart",
+      "gridPos": { "h": 12, "w": 24, "x": 0, "y": 22 },
+      "datasource": { "type": "postgres", "uid": "${DS_POSTGRESQL}" },
+      "options": { "xField": "Категорія", "orientation": "horizontal", "showValue": "always" },
+      "fieldConfig": { "defaults": {}, "overrides": [ { "matcher": { "id": "byName", "options": "Витрати" }, "properties": [ { "id": "unit", "value": "currencyUAH" } ] } ] },
+      "targets": [
+        {
+          "rawSql": "SELECT COALESCE(mc.category, 'Інше') AS \"Категорія\", SUM(-t.amount)/100.0 AS \"Витрати\" FROM transactions t LEFT JOIN mcc_categories mc ON mc.mcc = t.mcc WHERE t.amount < 0 AND t.operated_at BETWEEN $__timeFrom() AND $__timeTo() AND t.last4 IN ($card) AND COALESCE(mc.is_spending, true) GROUP BY 1 ORDER BY 2 DESC LIMIT 15",
+          "format": "table",
+          "rawQuery": true
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "title": "Найбільші витрати",
+      "type": "table",
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 34 },
+      "datasource": { "type": "postgres", "uid": "${DS_POSTGRESQL}" },
+      "fieldConfig": { "defaults": {}, "overrides": [ { "matcher": { "id": "byName", "options": "Сума" }, "properties": [ { "id": "unit", "value": "currencyUAH" } ] } ] },
+      "targets": [
+        {
+          "rawSql": "SELECT operated_at AS \"Дата\", description AS \"Опис\", bank AS \"Банк\", last4 AS \"Картка\", (-amount)/100.0 AS \"Сума\" FROM transactions t WHERE amount < 0 AND operated_at BETWEEN $__timeFrom() AND $__timeTo() AND last4 IN ($card) AND NOT EXISTS (SELECT 1 FROM mcc_categories mc WHERE mc.mcc = t.mcc AND mc.is_spending = false) ORDER BY amount ASC LIMIT 25",
+          "format": "table",
+          "rawQuery": true
+        }
+      ]
+    }
+  ]
+}

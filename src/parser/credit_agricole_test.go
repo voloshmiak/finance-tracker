@@ -1,10 +1,9 @@
 package parser
 
 import (
+	"finance-tracker/src/entity"
 	"os"
 	"testing"
-
-	"finance-tracker/src/entity"
 )
 
 func TestCreditAgricoleParse(t *testing.T) {

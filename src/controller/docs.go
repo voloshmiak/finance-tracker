@@ -1,14 +1,14 @@
 package controller
 
 import (
+	"finance-tracker/src/server"
 	"net/http"
 )
 
-type DocsController struct {
-}
+type Docs struct{}
 
-func NewDocsController() *DocsController {
-	return &DocsController{}
+func NewDocs() *Docs {
+	return &Docs{}
 }
 
 // ServeHTTP godoc
@@ -18,7 +18,7 @@ func NewDocsController() *DocsController {
 // @Produce     html
 // @Success     200  {string}  string  "HTML page"
 // @Router      /docs [get]
-func (h *DocsController) ServeHTTP(rw http.ResponseWriter, _ *http.Request) {
+func (h *Docs) ServeHTTP(rw http.ResponseWriter, _ *http.Request) {
 	html := `
     <!DOCTYPE html>
     <html>
@@ -44,6 +44,10 @@ func (h *DocsController) ServeHTTP(rw http.ResponseWriter, _ *http.Request) {
 	rw.WriteHeader(http.StatusOK)
 }
 
-func (h *DocsController) Register(mux *http.ServeMux) {
-	mux.Handle("GET /docs", h)
+func (h *Docs) Route() server.Route {
+	return server.Route{
+		Pattern: "GET /docs",
+		Handler: h,
+		IsPage:  true,
+	}
 }

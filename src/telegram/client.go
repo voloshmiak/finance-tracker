@@ -124,12 +124,12 @@ func (c *Client) Notify(ctx context.Context, message string) error {
 		return errors.Wrap(ErrAPIError, errResp.Description)
 	}
 
-	var encodedRespBody sendMessageResponse
-	if err = json.NewDecoder(resp.Body).Decode(&encodedRespBody); err != nil {
+	var decodedRespBody sendMessageResponse
+	if err = json.NewDecoder(resp.Body).Decode(&decodedRespBody); err != nil {
 		return errors.Wrap(err, "failed to decode response")
 	}
 
-	if !encodedRespBody.Ok {
+	if !decodedRespBody.Ok {
 		return errors.Wrap(ErrAPIError, "telegram API returned not ok")
 	}
 

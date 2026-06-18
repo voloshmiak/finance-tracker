@@ -2,13 +2,12 @@ package parser
 
 import (
 	"encoding/csv"
+	"finance-tracker/src/entity"
 	"fmt"
 	"io"
 	"strconv"
 	"strings"
 	"time"
-
-	"finance-tracker/src/entity"
 
 	"github.com/google/uuid"
 )
@@ -84,31 +83,31 @@ func (p *Monobank) parseRow(row []string) (*entity.Transaction, error) {
 		if err != nil {
 			return nil, fmt.Errorf("parse mcc %q: %w", row[monoColMCC], err)
 		}
-		tx.MCC = ptr(mcc)
+		tx.MCC = new(mcc)
 	}
 
 	if v, ok, err := parseMoneyKop(row[monoColOrigAmount]); err != nil {
 		return nil, fmt.Errorf("parse original amount: %w", err)
 	} else if ok {
-		tx.OriginalAmount = ptr(v)
+		tx.OriginalAmount = new(v)
 	}
 
 	if v, ok, err := parseMoneyKop(row[monoColCommission]); err != nil {
 		return nil, fmt.Errorf("parse commission: %w", err)
 	} else if ok {
-		tx.Commission = ptr(v)
+		tx.Commission = new(v)
 	}
 
 	if v, ok, err := parseMoneyKop(row[monoColCashback]); err != nil {
 		return nil, fmt.Errorf("parse cashback: %w", err)
 	} else if ok {
-		tx.Cashback = ptr(v)
+		tx.Cashback = new(v)
 	}
 
 	if v, ok, err := parseMoneyKop(row[monoColBalanceAfter]); err != nil {
 		return nil, fmt.Errorf("parse balance: %w", err)
 	} else if ok {
-		tx.BalanceAfter = ptr(v)
+		tx.BalanceAfter = new(v)
 	}
 
 	return tx, nil
