@@ -98,7 +98,6 @@ func (t *SQL) Execute(ctx context.Context, args map[string]any) (map[string]any,
 	}, nil
 }
 
-// normalize converts driver byte slices to strings so JSON output is readable.
 func normalize(v any) any {
 	if b, ok := v.([]byte); ok {
 		return string(b)
@@ -106,8 +105,6 @@ func normalize(v any) any {
 	return v
 }
 
-// validateSelect is the in-code guard layer: only a single SELECT/WITH query is
-// allowed, no statement chaining, no mutating keywords.
 func validateSelect(query string) error {
 	q := strings.TrimSpace(query)
 	q = strings.TrimSuffix(q, ";")
