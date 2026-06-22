@@ -35,7 +35,7 @@ func New(addr string, auth Middleware, global ...Middleware) *Server {
 	return &Server{
 		api: api,
 		httpServer: &http.Server{
-			Addr:         addr,
+			Addr:         ":" + addr,
 			Handler:      root,
 			ReadTimeout:  5 * time.Second,
 			WriteTimeout: 120 * time.Second,

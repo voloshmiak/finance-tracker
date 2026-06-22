@@ -77,7 +77,7 @@ func (p *Abank) Parse(r io.Reader) ([]*entity.Transaction, error) {
 		return nil, fmt.Errorf("buffer text: %w", err)
 	}
 
-	lines := make([]string, 0)
+	var lines []string
 	for l := range strings.SplitSeq(buf.String(), "\n") {
 		lines = append(lines, strings.TrimSpace(l))
 	}

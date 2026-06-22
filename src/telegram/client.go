@@ -4,14 +4,11 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
-
-	"github.com/pkg/errors"
 )
-
-var ErrAPIError = errors.New("telegram API error")
 
 type Client struct {
 	token      string
@@ -35,17 +32,17 @@ type sendMessageRequest struct {
 }
 
 type sendMessageResponse struct {
-	Ok     bool `json:"ok"`
+	OK     bool `json:"ok"`
 	Result any  `json:"result"`
 }
 
 type errorResponse struct {
-	Ok          bool   `json:"ok"`
+	OK          bool   `json:"ok"`
 	Description string `json:"description"`
 }
 
 type getFileResponse struct {
-	Ok     bool `json:"ok"`
+	OK     bool `json:"ok"`
 	Result struct {
 		FilePath string `json:"file_path"`
 	} `json:"result"`
@@ -59,60 +56,60 @@ func (c *Client) DownloadFile(ctx context.Context, fileID string) (io.ReadCloser
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, getURL, nil)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to create getFile request")
+		return nil, fmt.Errorf("failed to create getFile request: %w", err)
 	}
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to call getFile")
+		return nil, fmt.Errorf("failed to send getFile request: %w", err)
 	}
 	defer resp.Body.Close()
 
 	var gf getFileResponse
 	if err := json.NewDecoder(resp.Body).Decode(&gf); err != nil {
-		return nil, errors.Wrap(err, "failed to decode getFile response")
+		return nil, fmt.Errorf("failed to decode getFile response: %w", err)
 	}
-	if !gf.Ok || gf.Result.FilePath == "" {
-		return nil, errors.Wrap(ErrAPIError, "getFile returned no file path")
+	if !gf.OK || gf.Result.FilePath == "" {
+		return nil, fmt.Errorf("getFile failed: %v", gf)
 	}
 
 	// File content lives under /file/bot<token>/<file_path>, not the API path.
 	downloadURL := c.host + "/file/bot" + c.token + "/" + gf.Result.FilePath
 	dreq, err := http.NewRequestWithContext(ctx, http.MethodGet, downloadURL, nil)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to create download request")
+		return nil, fmt.Errorf("failed to create download request: %w", err)
 	}
 	dresp, err := c.httpClient.Do(dreq)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to download file")
+		return nil, fmt.Errorf("failed to send download request: %w", err)
 	}
 	if dresp.StatusCode != http.StatusOK {
 		dresp.Body.Close()
-		return nil, errors.Wrapf(ErrAPIError, "download failed with status %d", dresp.StatusCode)
+		return nil, fmt.Errorf("failed to send download request: status code %d", dresp.StatusCode)
 	}
 
 	return dresp.Body, nil
 }
 
 func (c *Client) Notify(ctx context.Context, message string) error {
-	url := c.host + "/bot" + c.token + "/sendMessage"
+	endpoint := c.host + "/bot" + c.token + "/sendMessage"
 	reqBody := sendMessageRequest{
 		ChatID: c.chatID,
 		Text:   message,
 	}
 	encodedReqBody, err := json.Marshal(reqBody)
 	if err != nil {
-		return errors.Wrap(err, "failed to encode message")
+		return fmt.Errorf("failed to encode request body: %w", err)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewBuffer(encodedReqBody))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, bytes.NewBuffer(encodedReqBody))
 	if err != nil {
-		return errors.Wrap(err, "failed to create request")
+		return fmt.Errorf("failed to create notify request: %w", err)
 	}
 
 	req.Header.Set("Content-Type", "application/json")
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return errors.Wrap(err, "failed to send message")
+		return fmt.Errorf("failed to send notify request: %w", err)
 	}
 	defer resp.Body.Close()
 
@@ -121,16 +118,16 @@ func (c *Client) Notify(ctx context.Context, message string) error {
 		if err = json.NewDecoder(resp.Body).Decode(&errResp); err != nil {
 			return err
 		}
-		return errors.Wrap(ErrAPIError, errResp.Description)
+		return fmt.Errorf("notify failed (status %d): %s", resp.StatusCode, errResp.Description)
 	}
 
 	var decodedRespBody sendMessageResponse
 	if err = json.NewDecoder(resp.Body).Decode(&decodedRespBody); err != nil {
-		return errors.Wrap(err, "failed to decode response")
+		return fmt.Errorf("failed to decode notify response: %w", err)
 	}
 
-	if !decodedRespBody.Ok {
-		return errors.Wrap(ErrAPIError, "telegram API returned not ok")
+	if !decodedRespBody.OK {
+		return fmt.Errorf("failed to send notify request: %v", decodedRespBody)
 	}
 
 	return nil

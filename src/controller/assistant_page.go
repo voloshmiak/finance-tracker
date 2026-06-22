@@ -3,27 +3,22 @@ package controller
 import (
 	_ "embed"
 	"finance-tracker/src/server"
-	"finance-tracker/src/usecase"
 	"net/http"
 )
 
 //go:embed assistant.html
 var assistantHTML string
 
-type AssistantPage struct {
-	useCase *usecase.Assistant
-}
+type AssistantPage struct{}
 
-func NewAssistantPage(useCase *usecase.Assistant) *AssistantPage {
-	return &AssistantPage{
-		useCase: useCase,
-	}
+func NewAssistantPage() *AssistantPage {
+	return &AssistantPage{}
 }
 
 // page godoc
-// @Summary     Assistant chat UI
+// @Summary     AskAssistant chat UI
 // @Description Serves the HTML chat interface for the AI finance assistant. Protected by HTTP Basic Auth.
-// @Tags        Assistant
+// @Tags        AskAssistant
 // @Produce     html
 // @Success     200  {string}  string  "HTML page"
 // @Failure     401  {string}  string  "Unauthorized"
@@ -35,6 +30,8 @@ func (c *AssistantPage) ServeHTTP(rw http.ResponseWriter, _ *http.Request) {
 		http.Error(rw, "Failed to load assistant page", http.StatusInternalServerError)
 		return
 	}
+
+	rw.WriteHeader(http.StatusOK)
 }
 
 func (c *AssistantPage) Route() server.Route {

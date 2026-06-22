@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"maps"
+	"slices"
 	"time"
 
 	"google.golang.org/genai"
@@ -72,8 +73,6 @@ func systemPrompt() string {
 
 Сьогоднішня дата: ` + time.Now().Format("2006-01-02") + `
 
-Мій дохід складає 1300$ на місяць.
-
 `
 }
 
@@ -109,7 +108,7 @@ func (a *Assistant) Register(tools ...Tool) {
 func (a *Assistant) Ask(ctx context.Context, question, model string) (string, error) {
 	if !allowedModels[model] {
 		return "", fmt.Errorf("model %q not allowed; must be one of: %v",
-			model, maps.Keys(allowedModels))
+			model, slices.Sorted(maps.Keys(allowedModels)))
 	}
 
 	config := &genai.GenerateContentConfig{
@@ -121,7 +120,7 @@ func (a *Assistant) Ask(ctx context.Context, question, model string) (string, er
 		genai.NewContentFromText(question, genai.RoleUser),
 	}
 
-	for turn := 0; turn < maxToolTurns; turn++ {
+	for range maxToolTurns {
 		resp, err := a.client.Models.GenerateContent(ctx, model, contents, config)
 		if err != nil {
 			return "", fmt.Errorf("gemini call: %w", err)
