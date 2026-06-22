@@ -31,13 +31,21 @@ type Webhook struct {
 	chatID     int
 }
 
-func NewWebhook(registry *parser.Registry, store TransactionStore, downloader FileDownloader, notifier Notifier, chatID int) *Webhook {
+type WebhookConfig struct {
+	Registry   *parser.Registry
+	Store      TransactionStore
+	Downloader FileDownloader
+	Notifier   Notifier
+	ChatID     int
+}
+
+func NewWebhook(cfg WebhookConfig) *Webhook {
 	return &Webhook{
-		registry:   registry,
-		store:      store,
-		downloader: downloader,
-		notifier:   notifier,
-		chatID:     chatID,
+		registry:   cfg.Registry,
+		store:      cfg.Store,
+		downloader: cfg.Downloader,
+		notifier:   cfg.Notifier,
+		chatID:     cfg.ChatID,
 	}
 }
 

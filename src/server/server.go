@@ -2,13 +2,19 @@ package server
 
 import (
 	"context"
+	"errors"
 	_ "finance-tracker/src/docs"
 	"log"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	httpSwagger "github.com/swaggo/http-swagger"
 )
+
+const shutdownTimeout = 10 * time.Second
 
 type Controller interface {
 	Route() Route
@@ -35,7 +41,7 @@ func New(addr string, auth Middleware, global ...Middleware) *Server {
 	return &Server{
 		api: api,
 		httpServer: &http.Server{
-			Addr:         addr,
+			Addr:         ":" + addr,
 			Handler:      root,
 			ReadTimeout:  5 * time.Second,
 			WriteTimeout: 120 * time.Second,
@@ -55,11 +61,25 @@ func (s *Server) Register(controllers ...Controller) {
 	}
 }
 
-func (s *Server) Start() error {
-	log.Println("Starting server on port", s.httpServer.Addr)
-	return s.httpServer.ListenAndServe()
-}
+func (s *Server) Run() error {
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
 
-func (s *Server) Stop(ctx context.Context) error {
-	return s.httpServer.Shutdown(ctx)
+	errCh := make(chan error, 1)
+	go func() {
+		log.Println("Starting server on port", s.httpServer.Addr)
+		if err := s.httpServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			errCh <- err
+		}
+	}()
+
+	select {
+	case err := <-errCh:
+		return err
+	case <-ctx.Done():
+		log.Println("Shutting down...")
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
+		defer cancel()
+		return s.httpServer.Shutdown(shutdownCtx)
+	}
 }

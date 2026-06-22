@@ -15,52 +15,41 @@ func NewCards(conn *sql.DB) *Cards {
 	return &Cards{conn: conn}
 }
 
-// MissingMonths returns, for each active card, the months since startFrom for
-// which no transaction has been imported yet. Months are returned as the first
-// day of the month. Cards with no gaps are omitted.
-func (r *Cards) MissingMonths(ctx context.Context, startFrom time.Time) ([]entity.MissingReport, error) {
+// Uncovered returns active cards whose statements are not imported up to a
+// recent date: covered_until is older than `staleBefore`, or never set.
+// Sorted by oldest coverage first.
+func (r *Cards) Uncovered(ctx context.Context, staleBefore time.Time) ([]entity.UncoveredCard, error) {
 	const query = `
-		WITH months AS (
-			SELECT generate_series(
-				date_trunc('month', $1::timestamptz),
-				-- up to the previous month: the current month isn't over yet,
-				-- so its statement can't exist.
-				date_trunc('month', now()) - interval '1 month',
-				interval '1 month'
-			) AS month
-		)
-		SELECT c.last4, c.bank, c.label, m.month
-		FROM cards c
-		CROSS JOIN months m
-		LEFT JOIN transactions t
-			ON t.last4 = c.last4
-			AND t.bank = c.bank
-			AND date_trunc('month', t.operated_at) = m.month
-		WHERE c.is_active
-			AND t.id IS NULL
-		GROUP BY c.last4, c.bank, c.label, m.month
-		ORDER BY c.bank, c.last4, m.month
+		SELECT last4, bank, label, covered_until
+		FROM cards
+		WHERE is_active
+			AND (covered_until IS NULL OR covered_until < $1)
+		ORDER BY covered_until ASC NULLS FIRST
 	`
 
-	rows, err := r.conn.QueryContext(ctx, query, startFrom)
+	rows, err := r.conn.QueryContext(ctx, query, staleBefore)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	var reports []entity.MissingReport
+	var cards []entity.UncoveredCard
 	for rows.Next() {
 		var (
-			rep   entity.MissingReport
-			label sql.NullString
+			c            entity.UncoveredCard
+			label        sql.NullString
+			coveredUntil sql.NullTime
 		)
-		if err := rows.Scan(&rep.Last4, &rep.Bank, &label, &rep.Month); err != nil {
+		if err := rows.Scan(&c.Last4, &c.Bank, &label, &coveredUntil); err != nil {
 			return nil, err
 		}
 		if label.Valid {
-			rep.Label = label.String
+			c.Label = label.String
 		}
-		reports = append(reports, rep)
+		if coveredUntil.Valid {
+			c.CoveredUntil = &coveredUntil.Time
+		}
+		cards = append(cards, c)
 	}
-	return reports, rows.Err()
+	return cards, rows.Err()
 }

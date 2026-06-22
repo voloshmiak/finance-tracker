@@ -47,9 +47,9 @@ definitions:
     type: object
 info:
   contact: {}
-  description: This is theAPI documentation for the Finance Tracker application
+  description: This is the API documentation for the Finance Tracker application
   title: Finance Tracker API
-  version: 0.1.0
+  version: 0.1.1
 paths:
   /assistant:
     get:
@@ -66,9 +66,9 @@ paths:
           description: Unauthorized
           schema:
             type: string
-      summary: Assistant chat UI
+      summary: AskAssistant chat UI
       tags:
-      - Assistant
+      - AskAssistant
   /assistant/ask:
     post:
       consumes:
@@ -103,7 +103,7 @@ paths:
             type: string
       summary: Ask the assistant
       tags:
-      - Assistant
+      - AskAssistant
   /cron/reminder:
     post:
       description: Triggers a Telegram reminder about card reports not yet uploaded

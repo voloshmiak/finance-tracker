@@ -2,19 +2,18 @@ package usecase
 
 import "context"
 
-// AssistantEngine answers a natural-language finance question.
 type AssistantEngine interface {
 	Ask(ctx context.Context, question, model string) (string, error)
 }
 
-type Assistant struct {
+type AskAssistant struct {
 	engine AssistantEngine
 }
 
-func NewAssistant(engine AssistantEngine) *Assistant {
-	return &Assistant{engine: engine}
+func NewAskAssistant(engine AssistantEngine) *AskAssistant {
+	return &AskAssistant{engine: engine}
 }
 
-func (u *Assistant) Ask(ctx context.Context, question, model string) (string, error) {
+func (u *AskAssistant) Execute(ctx context.Context, question, model string) (string, error) {
 	return u.engine.Ask(ctx, question, model)
 }

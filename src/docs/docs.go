@@ -22,9 +22,9 @@ const docTemplate = `{
                     "text/html"
                 ],
                 "tags": [
-                    "Assistant"
+                    "AskAssistant"
                 ],
-                "summary": "Assistant chat UI",
+                "summary": "AskAssistant chat UI",
                 "responses": {
                     "200": {
                         "description": "HTML page",
@@ -51,7 +51,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Assistant"
+                    "AskAssistant"
                 ],
                 "summary": "Ask the assistant",
                 "parameters": [
@@ -289,12 +289,12 @@ const docTemplate = `{
 
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
-	Version:          "0.1.0",
+	Version:          "0.1.1",
 	Host:             "",
 	BasePath:         "/api",
 	Schemes:          []string{},
 	Title:            "Finance Tracker API",
-	Description:      "This is theAPI documentation for the Finance Tracker application",
+	Description:      "This is the API documentation for the Finance Tracker application",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 	LeftDelim:        "{{",

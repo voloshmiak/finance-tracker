@@ -15,8 +15,8 @@ import (
 )
 
 // @title           Finance Tracker API
-// @version         0.1.0
-// @description		This is theAPI documentation for the Finance Tracker application
+// @version         0.1.1
+// @description		This is the API documentation for the Finance Tracker application
 // @BasePath        /api
 func main() {
 	if err := run(); err != nil {
@@ -61,19 +61,25 @@ func run() error {
 	gemini.Register(sql)
 
 	reminder := usecase.NewReminder(client, cards, c.Server.AuthToken)
-	webhook := usecase.NewWebhook(parsers, transactions, client, client, c.Telegram.ChatID)
-	assistant := usecase.NewAssistant(gemini)
+	webhook := usecase.NewWebhook(usecase.WebhookConfig{
+		Registry:   parsers,
+		Store:      transactions,
+		Downloader: client,
+		Notifier:   client,
+		ChatID:     c.Telegram.ChatID,
+	})
+	askAssistant := usecase.NewAskAssistant(gemini)
 
 	auth := server.BasicAuth(c.Assistant.Username, c.Assistant.Password)
-	s := server.New(":"+c.Server.Port, auth)
+	s := server.New(c.Server.Port, auth)
 	s.Register(
 		controller.NewDocs(),
 		controller.NewHealth(),
 		controller.NewReminder(reminder),
 		controller.NewWebhook(webhook, c.Telegram.WebhookSecret),
-		controller.NewAssistantPage(assistant),
-		controller.NewAssistantAsk(assistant),
+		controller.NewAssistantPage(),
+		controller.NewAskAssistant(askAssistant),
 	)
 
-	return s.Start()
+	return s.Run()
 }
