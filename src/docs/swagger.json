@@ -4,7 +4,7 @@
         "description": "This is the API documentation for the Finance Tracker application",
         "title": "Finance Tracker API",
         "contact": {},
-        "version": "0.1.1"
+        "version": "0.1.2"
     },
     "basePath": "/api",
     "paths": {

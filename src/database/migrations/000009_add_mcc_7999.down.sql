@@ -1,0 +1,1 @@
+DELETE FROM mcc_categories WHERE mcc = 7999;
