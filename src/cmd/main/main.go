@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"finance-tracker/src/assistant"
 	"finance-tracker/src/assistant/tool"
 	"finance-tracker/src/config"
@@ -73,7 +72,6 @@ func run() error {
 
 	auth := server.BasicAuth(c.Assistant.Username, c.Assistant.Password)
 	s := server.New(c.Server.Port, auth)
-	defer s.Stop(context.Background())
 	s.Register(
 		controller.NewDocs(),
 		controller.NewHealth(),
@@ -83,5 +81,5 @@ func run() error {
 		controller.NewAskAssistant(askAssistant),
 	)
 
-	return s.Start()
+	return s.Run()
 }
