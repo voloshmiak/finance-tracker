@@ -6,12 +6,12 @@ import (
 	"github.com/google/uuid"
 )
 
-// MissingReport is a (card, month) pair for which no statement has been imported.
-type MissingReport struct {
-	Last4 string
-	Bank  string
-	Label string // human-friendly card name, empty if unset
-	Month time.Time
+// UncoveredCard is a card whose statements are not imported up to date.
+type UncoveredCard struct {
+	Last4        string
+	Bank         string
+	Label        string     // human-friendly card name, empty if unset
+	CoveredUntil *time.Time // last imported date; nil if nothing imported yet
 }
 
 type Bank string

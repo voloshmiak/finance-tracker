@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"finance-tracker/src/entity"
 	"fmt"
+	"time"
 )
 
 type Transactions struct {
@@ -65,9 +66,41 @@ func (r *Transactions) Save(ctx context.Context, txs []*entity.Transaction) (int
 		}
 	}
 
+	// Advance each card's covered_until to the latest transaction date in this
+	// batch, so reminders know how far statements have been imported.
+	if err := advanceCoverage(ctx, tx, txs); err != nil {
+		return 0, err
+	}
+
 	if err := tx.Commit(); err != nil {
 		return 0, err
 	}
 
 	return inserted, nil
+}
+
+// advanceCoverage bumps cards.covered_until to the max operated_at seen per
+// (last4, bank) in the batch, never moving it backwards.
+func advanceCoverage(ctx context.Context, tx *sql.Tx, txs []*entity.Transaction) error {
+	type key struct{ last4, bank string }
+	latest := make(map[key]time.Time)
+	for _, t := range txs {
+		k := key{t.Last4, string(t.Bank)}
+		if t.OperatedAt.After(latest[k]) {
+			latest[k] = t.OperatedAt
+		}
+	}
+
+	const q = `
+		UPDATE cards
+		SET covered_until = $1
+		WHERE last4 = $2 AND bank = $3
+			AND (covered_until IS NULL OR covered_until < $1)
+	`
+	for k, ts := range latest {
+		if _, err := tx.ExecContext(ctx, q, ts, k.last4, k.bank); err != nil {
+			return err
+		}
+	}
+	return nil
 }
